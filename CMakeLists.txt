@@ -52,3 +52,9 @@ add_executable(a-t src/main.cpp)
 target_link_libraries(a-t PRIVATE glfw glad imgui)
 # glad provides the GL headers; keep GLFW from including its own.
 target_compile_definitions(a-t PRIVATE GLFW_INCLUDE_NONE)
+
+# Copy assets next to the executable so it finds them regardless of the working directory.
+add_custom_command(TARGET a-t POST_BUILD
+  COMMAND ${CMAKE_COMMAND} -E copy_directory
+          ${CMAKE_SOURCE_DIR}/assets $<TARGET_FILE_DIR:a-t>/assets
+)
