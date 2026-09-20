@@ -1,8 +1,8 @@
+#include "net/tle_fetch.h"
 #include "ui/header.h"
 #include "ui/style.h"
 
 #include <GLFW/glfw3.h>
-#include <cpr/cpr.h>
 #include <filesystem>
 #include <glad/glad.h>
 #include <imgui.h>
@@ -43,9 +43,9 @@ int main(int /*argc*/, char** argv) {
     }
     std::cout << "OpenGL " << glGetString(GL_VERSION) << '\n';
 
-    // Temporary: confirm the HTTP client works. Replaced by the real Celestrak fetch.
-    const cpr::Response response = cpr::Get(cpr::Url{"https://celestrak.org/"}, cpr::Timeout{5000});
-    std::cout << "HTTP " << response.status_code << '\n';
+    // ISS. Printing the raw TLE and caching come in later issues.
+    const std::optional<std::string> tle = net::FetchTle(25544);
+    std::cout << (tle ? "TLE fetched\n" : "TLE fetch failed\n");
 
     IMGUI_CHECKVERSION();
     ImGui::CreateContext();
