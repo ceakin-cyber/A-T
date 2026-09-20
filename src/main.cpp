@@ -1,11 +1,12 @@
 #include <GLFW/glfw3.h>
+#include <filesystem>
 #include <glad/glad.h>
 #include <imgui.h>
 #include <imgui_impl_glfw.h>
 #include <imgui_impl_opengl3.h>
 #include <iostream>
 
-int main() {
+int main(int /*argc*/, char** argv) {
     // Prefer X11: under WSLg the Wayland backend has no title bar or window buttons.
     // If X11 is unavailable (macOS, Windows, pure Wayland), fall back to any platform.
     glfwInitHint(GLFW_PLATFORM, GLFW_PLATFORM_X11);
@@ -41,6 +42,16 @@ int main() {
     IMGUI_CHECKVERSION();
     ImGui::CreateContext();
     ImGui::StyleColorsDark();
+
+    // Assets are copied next to the executable by CMake.
+    const std::filesystem::path exeDir = std::filesystem::absolute(argv[0]).parent_path();
+    const std::string fontPath = (exeDir / "assets" / "fonts" / "VT323-Regular.ttf").string();
+    ImGuiIO& io = ImGui::GetIO();
+    if (!io.Fonts->AddFontFromFileTTF(fontPath.c_str(), 20.0F)) {
+        std::cerr << "Could not load font " << fontPath << ", using default\n";
+        io.Fonts->AddFontDefault();
+    }
+
     ImGui_ImplGlfw_InitForOpenGL(window, true);
     ImGui_ImplOpenGL3_Init("#version 410");
 
