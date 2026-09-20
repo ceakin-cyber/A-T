@@ -1,5 +1,6 @@
 #include <GLFW/glfw3.h>
 #include <glad/glad.h>
+#include <imgui.h>
 #include <iostream>
 
 int main() {
@@ -34,6 +35,7 @@ int main() {
         return 1;
     }
     std::cout << "OpenGL " << glGetString(GL_VERSION) << '\n';
+    std::cout << "Dear ImGui " << ImGui::GetVersion() << '\n';
 
     while (!glfwWindowShouldClose(window)) {
         int width = 0;

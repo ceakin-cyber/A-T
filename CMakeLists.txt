@@ -26,9 +26,26 @@ FetchContent_Declare(
   GIT_TAG        651a425101365aa6e8504988ef9bb363d066c5ee
 )
 
-FetchContent_MakeAvailable(glfw glad)
+# Dear ImGui (docking branch) has no CMake build, so we compile its sources ourselves.
+FetchContent_Declare(
+  imgui
+  GIT_REPOSITORY https://github.com/ocornut/imgui.git
+  GIT_TAG        v1.92.9b-docking
+  GIT_SHALLOW    TRUE
+)
+
+FetchContent_MakeAvailable(glfw glad imgui)
+
+add_library(imgui STATIC
+  ${imgui_SOURCE_DIR}/imgui.cpp
+  ${imgui_SOURCE_DIR}/imgui_demo.cpp
+  ${imgui_SOURCE_DIR}/imgui_draw.cpp
+  ${imgui_SOURCE_DIR}/imgui_tables.cpp
+  ${imgui_SOURCE_DIR}/imgui_widgets.cpp
+)
+target_include_directories(imgui SYSTEM PUBLIC ${imgui_SOURCE_DIR})
 
 add_executable(a-t src/main.cpp)
-target_link_libraries(a-t PRIVATE glfw glad)
+target_link_libraries(a-t PRIVATE glfw glad imgui)
 # glad provides the GL headers; keep GLFW from including its own.
 target_compile_definitions(a-t PRIVATE GLFW_INCLUDE_NONE)
