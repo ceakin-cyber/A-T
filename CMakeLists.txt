@@ -18,7 +18,17 @@ set(GLFW_BUILD_EXAMPLES OFF CACHE BOOL "" FORCE)
 set(GLFW_BUILD_TESTS    OFF CACHE BOOL "" FORCE)
 set(GLFW_BUILD_DOCS     OFF CACHE BOOL "" FORCE)
 set(GLFW_INSTALL        OFF CACHE BOOL "" FORCE)
-FetchContent_MakeAvailable(glfw)
+
+# Pre-generated glad loader (OpenGL 4.1 core), so the build needs no Python.
+FetchContent_Declare(
+  glad
+  GIT_REPOSITORY https://github.com/libigl/libigl-glad.git
+  GIT_TAG        651a425101365aa6e8504988ef9bb363d066c5ee
+)
+
+FetchContent_MakeAvailable(glfw glad)
 
 add_executable(a-t src/main.cpp)
-target_link_libraries(a-t PRIVATE glfw)
+target_link_libraries(a-t PRIVATE glfw glad)
+# glad provides the GL headers; keep GLFW from including its own.
+target_compile_definitions(a-t PRIVATE GLFW_INCLUDE_NONE)
