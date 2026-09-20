@@ -52,10 +52,48 @@ struct Sgp4Model {
     double qoms24 = 0.0;   // qzms24: (120 km - s)^4 in Earth radii
     double tsi = 0.0;      // 1 / (a - s)
     double eta = 0.0;      // a * e * tsi
+
+    // Secular rates, from the J2 and J4 gravity terms (radians per minute).
+    double mdot = 0.0;    // mean anomaly
+    double argpdot = 0.0; // argument of perigee
+    double nodedot = 0.0; // right ascension of the ascending node
+
+    // Drag coefficients. The terms d2..d4 and t3cof..t5cof stay zero for simple orbits.
+    double cc1 = 0.0;
+    double cc4 = 0.0;
+    double cc5 = 0.0;
+    double omgcof = 0.0;
+    double xmcof = 0.0;
+    double nodecf = 0.0;
+    double t2cof = 0.0;
+    double delmo = 0.0;
+    double sinmao = 0.0;
+    double d2 = 0.0;
+    double d3 = 0.0;
+    double d4 = 0.0;
+    double t3cof = 0.0;
+    double t4cof = 0.0;
+    double t5cof = 0.0;
 };
 
 // Initializes SGP4 from a TLE. Returns nullopt for deep-space orbits (period of 225 minutes or
 // more), which need the SDP4 model, and for elements that cannot describe a bound orbit.
 std::optional<Sgp4Model> InitSgp4(const Tle& tle);
+
+// Mean orbital elements at some time after (or before) the epoch, once secular gravity and drag
+// effects are applied. Angles are in radians, in [0, 2*pi).
+struct MeanElements {
+    double semiMajorAxis = 0.0; // am, in Earth radii
+    double eccentricity = 0.0;  // em
+    double inclination = 0.0;   // inclm
+    double raan = 0.0;          // nodem
+    double argPerigee = 0.0;    // argpm
+    double meanAnomaly = 0.0;   // mm
+    double meanMotion = 0.0;    // nm, radians per minute
+};
+
+// Evolves the epoch elements by the given number of minutes (negative goes back in time).
+// Returns nullopt if drag drives the eccentricity out of range or the mean motion to zero.
+std::optional<MeanElements> PropagateSecular(const Sgp4Model& model, double minutesSinceEpoch);
 
 } // namespace core
