@@ -68,7 +68,7 @@ target_include_directories(imgui SYSTEM PUBLIC ${imgui_SOURCE_DIR} ${imgui_SOURC
 target_link_libraries(imgui PUBLIC glfw)
 
 # Astronomy and orbit code. Must not depend on the UI or network code.
-add_library(core STATIC src/core/sgp4.cpp src/core/time.cpp src/core/tle.cpp)
+add_library(core STATIC src/core/kepler.cpp src/core/sgp4.cpp src/core/time.cpp src/core/tle.cpp)
 target_include_directories(core PUBLIC src)
 
 # Network access and the on-disk TLE cache.
@@ -89,7 +89,7 @@ add_custom_command(TARGET a-t POST_BUILD
 )
 
 enable_testing()
-add_executable(tests tests/sgp4_init_test.cpp tests/sgp4_secular_test.cpp tests/time_test.cpp tests/tle_test.cpp tests/tle_cache_test.cpp tests/tle_source_test.cpp)
+add_executable(tests tests/kepler_test.cpp tests/sgp4_init_test.cpp tests/sgp4_secular_test.cpp tests/time_test.cpp tests/tle_test.cpp tests/tle_cache_test.cpp tests/tle_source_test.cpp)
 target_link_libraries(tests PRIVATE core net GTest::gtest_main)
 include(GoogleTest)
 gtest_discover_tests(tests)
