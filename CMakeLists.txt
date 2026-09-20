@@ -71,9 +71,14 @@ target_link_libraries(imgui PUBLIC glfw)
 add_library(core STATIC src/core/tle.cpp)
 target_include_directories(core PUBLIC src)
 
-add_executable(a-t src/main.cpp src/net/tle_fetch.cpp src/ui/header.cpp src/ui/style.cpp)
+# Network access and the on-disk TLE cache.
+add_library(net STATIC src/net/tle_fetch.cpp src/net/tle_cache.cpp src/net/tle_source.cpp)
+target_include_directories(net PUBLIC src)
+target_link_libraries(net PRIVATE cpr::cpr)
+
+add_executable(a-t src/main.cpp src/ui/header.cpp src/ui/style.cpp)
 target_include_directories(a-t PRIVATE src)
-target_link_libraries(a-t PRIVATE core glfw glad imgui cpr::cpr)
+target_link_libraries(a-t PRIVATE core net glfw glad imgui)
 # glad provides the GL headers; keep GLFW from including its own.
 target_compile_definitions(a-t PRIVATE GLFW_INCLUDE_NONE)
 
@@ -84,7 +89,7 @@ add_custom_command(TARGET a-t POST_BUILD
 )
 
 enable_testing()
-add_executable(tests tests/tle_test.cpp)
-target_link_libraries(tests PRIVATE core GTest::gtest_main)
+add_executable(tests tests/tle_test.cpp tests/tle_cache_test.cpp)
+target_link_libraries(tests PRIVATE core net GTest::gtest_main)
 include(GoogleTest)
 gtest_discover_tests(tests)

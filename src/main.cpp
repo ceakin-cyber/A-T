@@ -1,4 +1,4 @@
-#include "net/tle_fetch.h"
+#include "net/tle_source.h"
 #include "ui/header.h"
 #include "ui/style.h"
 
@@ -43,9 +43,9 @@ int main(int /*argc*/, char** argv) {
     }
     std::cout << "OpenGL " << glGetString(GL_VERSION) << '\n';
 
-    // ISS. Printing the raw TLE and caching come in later issues.
-    const std::optional<std::string> tle = net::FetchTle(25544);
-    std::cout << (tle ? "TLE fetched\n" : "TLE fetch failed\n");
+    // ISS. Printing the raw TLE and falling back to stale cache come in later issues.
+    const std::optional<std::string> tle = net::LoadTle(25544);
+    std::cout << (tle ? "TLE loaded\n" : "TLE load failed\n");
 
     IMGUI_CHECKVERSION();
     ImGui::CreateContext();
