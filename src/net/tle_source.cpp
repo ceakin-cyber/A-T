@@ -7,6 +7,18 @@
 
 namespace net {
 
+const char* ToString(TleSource source) {
+    switch (source) {
+    case TleSource::Network:
+        return "network";
+    case TleSource::FreshCache:
+        return "cache";
+    case TleSource::StaleCache:
+        return "stale cache";
+    }
+    return "unknown";
+}
+
 std::optional<LoadedTle> LoadTle(const std::filesystem::path& cacheDir, int noradId,
                                  Clock::time_point now, const TleFetcher& fetch) {
     const std::optional<CachedTle> cached = ReadTleCache(cacheDir, noradId);

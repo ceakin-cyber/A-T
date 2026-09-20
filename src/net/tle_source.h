@@ -15,6 +15,9 @@ enum class TleSource {
     StaleCache, // fetch failed, so an older cached copy was used
 };
 
+// A short name for logging and display, such as "network" or "stale cache".
+const char* ToString(TleSource source);
+
 struct LoadedTle {
     std::string text;
     Clock::time_point fetchedAt; // when this TLE was downloaded, not when it was loaded
