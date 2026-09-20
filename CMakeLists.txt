@@ -34,7 +34,17 @@ FetchContent_Declare(
   GIT_SHALLOW    TRUE
 )
 
-FetchContent_MakeAvailable(glfw glad imgui)
+# HTTP client. Uses the system libcurl (libcurl4-openssl-dev) instead of building curl.
+FetchContent_Declare(
+  cpr
+  GIT_REPOSITORY https://github.com/libcpr/cpr.git
+  GIT_TAG        1.14.2
+  GIT_SHALLOW    TRUE
+)
+set(CPR_USE_SYSTEM_CURL ON CACHE BOOL "" FORCE)
+set(CPR_BUILD_TESTS     OFF CACHE BOOL "" FORCE)
+
+FetchContent_MakeAvailable(glfw glad imgui cpr)
 
 add_library(imgui STATIC
   ${imgui_SOURCE_DIR}/imgui.cpp
@@ -50,7 +60,7 @@ target_link_libraries(imgui PUBLIC glfw)
 
 add_executable(a-t src/main.cpp src/ui/header.cpp src/ui/style.cpp)
 target_include_directories(a-t PRIVATE src)
-target_link_libraries(a-t PRIVATE glfw glad imgui)
+target_link_libraries(a-t PRIVATE glfw glad imgui cpr::cpr)
 # glad provides the GL headers; keep GLFW from including its own.
 target_compile_definitions(a-t PRIVATE GLFW_INCLUDE_NONE)
 

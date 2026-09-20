@@ -2,6 +2,7 @@
 #include "ui/style.h"
 
 #include <GLFW/glfw3.h>
+#include <cpr/cpr.h>
 #include <filesystem>
 #include <glad/glad.h>
 #include <imgui.h>
@@ -41,6 +42,10 @@ int main(int /*argc*/, char** argv) {
         return 1;
     }
     std::cout << "OpenGL " << glGetString(GL_VERSION) << '\n';
+
+    // Temporary: confirm the HTTP client works. Replaced by the real Celestrak fetch.
+    const cpr::Response response = cpr::Get(cpr::Url{"https://celestrak.org/"}, cpr::Timeout{5000});
+    std::cout << "HTTP " << response.status_code << '\n';
 
     IMGUI_CHECKVERSION();
     ImGui::CreateContext();
