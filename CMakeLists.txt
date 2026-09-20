@@ -89,7 +89,7 @@ add_custom_command(TARGET a-t POST_BUILD
 )
 
 enable_testing()
-add_executable(tests tests/kepler_test.cpp tests/sgp4_init_test.cpp tests/sgp4_secular_test.cpp tests/time_test.cpp tests/tle_test.cpp tests/tle_cache_test.cpp tests/tle_source_test.cpp)
+add_executable(tests tests/kepler_test.cpp tests/sgp4_init_test.cpp tests/sgp4_propagate_test.cpp tests/sgp4_secular_test.cpp tests/time_test.cpp tests/tle_test.cpp tests/tle_cache_test.cpp tests/tle_source_test.cpp)
 target_link_libraries(tests PRIVATE core net GTest::gtest_main)
 include(GoogleTest)
 gtest_discover_tests(tests)
