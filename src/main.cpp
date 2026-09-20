@@ -1,3 +1,4 @@
+#include "ui/header.h"
 #include "ui/style.h"
 
 #include <GLFW/glfw3.h>
@@ -69,6 +70,12 @@ int main(int /*argc*/, char** argv) {
         ImGui_ImplOpenGL3_NewFrame();
         ImGui_ImplGlfw_NewFrame();
         ImGui::NewFrame();
+        const float headerHeight = ui::DrawHeaderBar();
+
+        const ImGuiViewport* viewport = ImGui::GetMainViewport();
+        ImGui::SetNextWindowPos(
+            ImVec2(viewport->Pos.x + 20.0F, viewport->Pos.y + headerHeight + 20.0F),
+            ImGuiCond_FirstUseEver);
         ImGui::SetNextWindowSize(ImVec2(480.0F, 320.0F), ImGuiCond_FirstUseEver);
         ImGui::Begin("A-T");
         ImGui::End();

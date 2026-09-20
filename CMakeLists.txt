@@ -48,7 +48,7 @@ add_library(imgui STATIC
 target_include_directories(imgui SYSTEM PUBLIC ${imgui_SOURCE_DIR} ${imgui_SOURCE_DIR}/backends)
 target_link_libraries(imgui PUBLIC glfw)
 
-add_executable(a-t src/main.cpp src/ui/style.cpp)
+add_executable(a-t src/main.cpp src/ui/header.cpp src/ui/style.cpp)
 target_include_directories(a-t PRIVATE src)
 target_link_libraries(a-t PRIVATE glfw glad imgui)
 # glad provides the GL headers; keep GLFW from including its own.
