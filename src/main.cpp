@@ -1,3 +1,5 @@
+#include "ui/style.h"
+
 #include <GLFW/glfw3.h>
 #include <filesystem>
 #include <glad/glad.h>
@@ -41,7 +43,7 @@ int main(int /*argc*/, char** argv) {
 
     IMGUI_CHECKVERSION();
     ImGui::CreateContext();
-    ImGui::StyleColorsDark();
+    ui::ApplyTerminalStyle();
 
     // Assets are copied next to the executable by CMake.
     const std::filesystem::path exeDir = std::filesystem::absolute(argv[0]).parent_path();
@@ -61,7 +63,7 @@ int main(int /*argc*/, char** argv) {
         glfwGetFramebufferSize(window, &width, &height);
         glViewport(0, 0, width, height);
 
-        glClearColor(0.15F, 0.35F, 0.55F, 1.0F);
+        glClearColor(0.0F, 0.02F, 0.01F, 1.0F);
         glClear(GL_COLOR_BUFFER_BIT);
 
         ImGui_ImplOpenGL3_NewFrame();
