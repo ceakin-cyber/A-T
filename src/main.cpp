@@ -36,6 +36,14 @@ int main() {
     std::cout << "OpenGL " << glGetString(GL_VERSION) << '\n';
 
     while (!glfwWindowShouldClose(window)) {
+        int width = 0;
+        int height = 0;
+        glfwGetFramebufferSize(window, &width, &height);
+        glViewport(0, 0, width, height);
+
+        glClearColor(0.15F, 0.35F, 0.55F, 1.0F);
+        glClear(GL_COLOR_BUFFER_BIT);
+
         glfwSwapBuffers(window);
         glfwPollEvents();
     }
