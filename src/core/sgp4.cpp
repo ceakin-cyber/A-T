@@ -1,5 +1,6 @@
 #include "core/sgp4.h"
 
+#include "core/kepler.h"
 #include "core/time.h"
 
 #include <cmath>
@@ -100,13 +101,13 @@ std::optional<Sgp4Model> InitSgp4(const Tle& tle) {
     if (m.eccentricity > 1.0e-4) {
         cc3 = -2.0 * coef * m.tsi * kJ3OverJ2 * m.meanMotion * m.sinInclination / m.eccentricity;
     }
-    const double x1mth2 = 1.0 - cosio2;
-    m.cc4 =
-        2.0 * m.meanMotion * coef1 * m.semiMajorAxis * m.omeosq *
-        (m.eta * (2.0 + 0.5 * etasq) + m.eccentricity * (0.5 + 2.0 * etasq) -
-         kJ2 * m.tsi / (m.semiMajorAxis * psisq) *
-             (-3.0 * m.con41 * (1.0 - 2.0 * eeta + etasq * (1.5 - 0.5 * eeta)) +
-              0.75 * x1mth2 * (2.0 * etasq - eeta * (1.0 + etasq)) * std::cos(2.0 * m.argPerigee)));
+    m.x1mth2 = 1.0 - cosio2;
+    m.cc4 = 2.0 * m.meanMotion * coef1 * m.semiMajorAxis * m.omeosq *
+            (m.eta * (2.0 + 0.5 * etasq) + m.eccentricity * (0.5 + 2.0 * etasq) -
+             kJ2 * m.tsi / (m.semiMajorAxis * psisq) *
+                 (-3.0 * m.con41 * (1.0 - 2.0 * eeta + etasq * (1.5 - 0.5 * eeta)) +
+                  0.75 * m.x1mth2 * (2.0 * etasq - eeta * (1.0 + etasq)) *
+                      std::cos(2.0 * m.argPerigee)));
     m.cc5 = 2.0 * coef1 * m.semiMajorAxis * m.omeosq * (1.0 + 2.75 * (etasq + eeta) + eeta * etasq);
 
     // Secular rates of the mean anomaly, argument of perigee and node (J2, J2^2 and J4 terms).
@@ -133,6 +134,13 @@ std::optional<Sgp4Model> InitSgp4(const Tle& tle) {
     const double delmotemp = 1.0 + m.eta * std::cos(m.meanAnomaly);
     m.delmo = delmotemp * delmotemp * delmotemp;
     m.sinmao = std::sin(m.meanAnomaly);
+    m.x7thm1 = 7.0 * cosio2 - 1.0;
+
+    m.aycof = -0.5 * kJ3OverJ2 * m.sinInclination;
+    // Guard the division for an inclination of exactly 180 degrees.
+    const double denominator =
+        std::fabs(m.cosInclination + 1.0) > 1.5e-12 ? 1.0 + m.cosInclination : 1.5e-12;
+    m.xlcof = -0.25 * kJ3OverJ2 * m.sinInclination * (3.0 + 5.0 * m.cosInclination) / denominator;
 
     if (!m.isSimple) {
         const double cc1sq = m.cc1 * m.cc1;
@@ -211,6 +219,91 @@ std::optional<MeanElements> PropagateSecular(const Sgp4Model& m, double t) {
     e.argPerigee = WrapAngle(argpm);
     e.meanAnomaly = WrapAngle(WrapAngle(xlm) - e.argPerigee - e.raan);
     return e;
+}
+
+std::optional<StateVector> Propagate(const Sgp4Model& m, double minutesSinceEpoch) {
+    using namespace wgs72;
+
+    const std::optional<MeanElements> mean = PropagateSecular(m, minutesSinceEpoch);
+    if (!mean) {
+        return std::nullopt;
+    }
+    const double am = mean->semiMajorAxis;
+    const double ep = mean->eccentricity;
+    const double xincp = mean->inclination;
+    const double sinip = std::sin(xincp);
+    const double cosip = std::cos(xincp);
+
+    // Long-period periodics.
+    const double axnl = ep * std::cos(mean->argPerigee);
+    const double temp = 1.0 / (am * (1.0 - ep * ep));
+    const double aynl = ep * std::sin(mean->argPerigee) + temp * m.aycof;
+    const double xl = mean->meanAnomaly + mean->argPerigee + mean->raan + temp * m.xlcof * axnl;
+
+    // Kepler's equation.
+    const double u = WrapAngle(xl - mean->raan);
+    const double eo1 = SolveKeplerSgp4(u, axnl, aynl);
+    const double sineo1 = std::sin(eo1);
+    const double coseo1 = std::cos(eo1);
+
+    // Preliminary quantities for the short-period periodics.
+    const double ecose = axnl * coseo1 + aynl * sineo1;
+    const double esine = axnl * sineo1 - aynl * coseo1;
+    const double el2 = axnl * axnl + aynl * aynl;
+    const double pl = am * (1.0 - el2);
+    if (pl < 0.0) {
+        return std::nullopt;
+    }
+
+    const double rl = am * (1.0 - ecose);
+    const double rdotl = std::sqrt(am) * esine / rl;
+    const double rvdotl = std::sqrt(pl) / rl;
+    const double betal = std::sqrt(1.0 - el2);
+    const double tempBeta = esine / (1.0 + betal);
+    const double sinu = am / rl * (sineo1 - aynl - axnl * tempBeta);
+    const double cosu = am / rl * (coseo1 - axnl + aynl * tempBeta);
+    double su = std::atan2(sinu, cosu);
+    const double sin2u = (cosu + cosu) * sinu;
+    const double cos2u = 1.0 - 2.0 * sinu * sinu;
+    const double invPl = 1.0 / pl;
+    const double temp1 = 0.5 * kJ2 * invPl;
+    const double temp2 = temp1 * invPl;
+
+    // Short-period periodics.
+    const double mrt = rl * (1.0 - 1.5 * temp2 * betal * m.con41) + 0.5 * temp1 * m.x1mth2 * cos2u;
+    su -= 0.25 * temp2 * m.x7thm1 * sin2u;
+    const double xnode = mean->raan + 1.5 * temp2 * cosip * sin2u;
+    const double xinc = xincp + 1.5 * temp2 * cosip * sinip * cos2u;
+    const double mvt = rdotl - mean->meanMotion * temp1 * m.x1mth2 * sin2u / kXke;
+    const double rvdot =
+        rvdotl + mean->meanMotion * temp1 * (m.x1mth2 * cos2u + 1.5 * m.con41) / kXke;
+
+    // A radius below one Earth radius means the satellite has decayed.
+    if (mrt < 1.0) {
+        return std::nullopt;
+    }
+
+    // Orientation vectors: the radial and along-track directions in the TEME frame.
+    const double sinsu = std::sin(su);
+    const double cossu = std::cos(su);
+    const double snod = std::sin(xnode);
+    const double cnod = std::cos(xnode);
+    const double sini = std::sin(xinc);
+    const double cosi = std::cos(xinc);
+    const double xmx = -snod * cosi;
+    const double xmy = cnod * cosi;
+    const Vec3 radial{xmx * sinsu + cnod * cossu, xmy * sinsu + snod * cossu, sini * sinsu};
+    const Vec3 along{xmx * cossu - cnod * sinsu, xmy * cossu - snod * sinsu, sini * cossu};
+
+    // Position in km and velocity in km/s.
+    const double distanceKm = mrt * kRadiusEarthKm;
+    const double velocityScale = kRadiusEarthKm * kXke / 60.0;
+    StateVector state;
+    state.position = {distanceKm * radial.x, distanceKm * radial.y, distanceKm * radial.z};
+    state.velocity = {(mvt * radial.x + rvdot * along.x) * velocityScale,
+                      (mvt * radial.y + rvdot * along.y) * velocityScale,
+                      (mvt * radial.z + rvdot * along.z) * velocityScale};
+    return state;
 }
 
 } // namespace core

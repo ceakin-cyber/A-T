@@ -1,6 +1,7 @@
 #pragma once
 
 #include "core/tle.h"
+#include "core/vec3.h"
 
 #include <cmath>
 #include <optional>
@@ -74,6 +75,12 @@ struct Sgp4Model {
     double t3cof = 0.0;
     double t4cof = 0.0;
     double t5cof = 0.0;
+
+    // Coefficients for the long- and short-period corrections.
+    double aycof = 0.0;
+    double xlcof = 0.0;
+    double x1mth2 = 0.0; // 1 - cos^2(i)
+    double x7thm1 = 0.0; // 7 * cos^2(i) - 1
 };
 
 // Initializes SGP4 from a TLE. Returns nullopt for deep-space orbits (period of 225 minutes or
@@ -95,5 +102,18 @@ struct MeanElements {
 // Evolves the epoch elements by the given number of minutes (negative goes back in time).
 // Returns nullopt if drag drives the eccentricity out of range or the mean motion to zero.
 std::optional<MeanElements> PropagateSecular(const Sgp4Model& model, double minutesSinceEpoch);
+
+// Position and velocity in the TEME frame (true equator, mean equinox of date): an inertial
+// frame, not one that rotates with the Earth.
+struct StateVector {
+    Vec3 position; // km
+    Vec3 velocity; // km/s
+};
+
+// Full SGP4: propagates the model to the given number of minutes since the TLE epoch (negative
+// goes back in time). Returns nullopt if the orbit cannot be propagated to that time: drag has
+// destroyed the elements, the semi-latus rectum went negative, or the satellite has decayed
+// below the Earth's surface.
+std::optional<StateVector> Propagate(const Sgp4Model& model, double minutesSinceEpoch);
 
 } // namespace core
