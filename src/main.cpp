@@ -67,7 +67,9 @@ int main(int /*argc*/, char** argv) {
         ImGui_ImplOpenGL3_NewFrame();
         ImGui_ImplGlfw_NewFrame();
         ImGui::NewFrame();
-        ImGui::ShowDemoWindow();
+        ImGui::SetNextWindowSize(ImVec2(480.0F, 320.0F), ImGuiCond_FirstUseEver);
+        ImGui::Begin("A-T");
+        ImGui::End();
         ImGui::Render();
         ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
 
