@@ -9,6 +9,21 @@ uniform float uScanlineIntensity;
 // Distance in pixels from one dark band to the next.
 uniform float uScanlinePeriod;
 
+// Glow: bright areas spill a soft halo onto their surroundings. 0 = off.
+uniform float uBloomIntensity;
+// How wide the halo is. The scene is kept at six blurrier and blurrier sizes (uBloom1 is half the
+// size, uBloom2 a quarter, ... uBloom6 a sixty-fourth); spread 0 blends the smallest blurs and
+// each step up moves to wider ones, so 5 is the widest.
+uniform float uBloomSpread;
+// Brightness (0 to 1) below which nothing glows, so dim backgrounds do not.
+uniform float uBloomThreshold;
+uniform sampler2D uBloom1;
+uniform sampler2D uBloom2;
+uniform sampler2D uBloom3;
+uniform sampler2D uBloom4;
+uniform sampler2D uBloom5;
+uniform sampler2D uBloom6;
+
 in vec2 vUv;
 out vec4 fragColor;
 
@@ -27,7 +42,32 @@ float Scanlines() {
     return 1.0 - uScanlineIntensity * darkness;
 }
 
+// Blend weight of blur level `level` (1 to 6) for the current spread: a triangle centred on the
+// level the spread points at, so moving the spread slides smoothly from one level to the next.
+float BloomWeight(float level) {
+    return max(0.0, 1.5 - abs(level - (uBloomSpread + 1.0)));
+}
+
+// The halo to add to the picture: a weighted blend of the blurred copies, with the dim part cut
+// off by the threshold.
+vec3 Glow() {
+    if (uBloomIntensity <= 0.0) {
+        return vec3(0.0);
+    }
+    float w1 = BloomWeight(1.0);
+    float w2 = BloomWeight(2.0);
+    float w3 = BloomWeight(3.0);
+    float w4 = BloomWeight(4.0);
+    float w5 = BloomWeight(5.0);
+    float w6 = BloomWeight(6.0);
+    vec3 blurred = w1 * texture(uBloom1, vUv).rgb + w2 * texture(uBloom2, vUv).rgb +
+                   w3 * texture(uBloom3, vUv).rgb + w4 * texture(uBloom4, vUv).rgb +
+                   w5 * texture(uBloom5, vUv).rgb + w6 * texture(uBloom6, vUv).rgb;
+    blurred /= (w1 + w2 + w3 + w4 + w5 + w6);
+    return max(blurred - vec3(uBloomThreshold), vec3(0.0)) * uBloomIntensity;
+}
+
 void main() {
     vec4 scene = texture(uScene, vUv);
-    fragColor = vec4(scene.rgb * Scanlines(), scene.a);
+    fragColor = vec4(scene.rgb * Scanlines() + Glow(), scene.a);
 }

@@ -8,10 +8,7 @@ ScreenPass::~ScreenPass() {
 
 void ScreenPass::Release() {
     shader_.Release();
-    if (vertexArray_ != 0) {
-        glDeleteVertexArrays(1, &vertexArray_);
-        vertexArray_ = 0;
-    }
+    triangle_.Release();
 }
 
 bool ScreenPass::Load(const std::filesystem::path& shaderDirectory) {
@@ -19,12 +16,12 @@ bool ScreenPass::Load(const std::filesystem::path& shaderDirectory) {
     if (!shader_.Load(shaderDirectory / "fullscreen.vert", shaderDirectory / "crt.frag")) {
         return false;
     }
-    // Core profile requires a vertex array object to draw, even with no vertex data.
-    glGenVertexArrays(1, &vertexArray_);
+    triangle_.Create();
     return true;
 }
 
-void ScreenPass::Draw(GLuint texture, int width, int height, const CrtSettings& settings) const {
+void ScreenPass::Draw(GLuint texture, int width, int height, const CrtSettings& settings,
+                      const BloomChain& bloom) const {
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
     glViewport(0, 0, width, height);
 
@@ -38,13 +35,28 @@ void ScreenPass::Draw(GLuint texture, int width, int height, const CrtSettings& 
     glActiveTexture(GL_TEXTURE0);
     glBindTexture(GL_TEXTURE_2D, texture);
     shader_.SetInt("uScene", 0);
+
+    // The blurred copies go on texture units 1 to 6.
+    static const char* const kNames[BloomChain::kLevels] = {"uBloom1", "uBloom2", "uBloom3",
+                                                            "uBloom4", "uBloom5", "uBloom6"};
+    for (int level = 1; level <= BloomChain::kLevels; ++level) {
+        glActiveTexture(GL_TEXTURE0 + static_cast<GLenum>(level));
+        glBindTexture(GL_TEXTURE_2D, bloom.Texture(level));
+        shader_.SetInt(kNames[level - 1], level);
+    }
+
     shader_.SetFloat("uScanlineIntensity", settings.scanlineIntensity);
     shader_.SetFloat("uScanlinePeriod", settings.scanlinePeriod);
+    shader_.SetFloat("uBloomIntensity", settings.bloomIntensity);
+    shader_.SetFloat("uBloomSpread", settings.bloomSpread);
+    shader_.SetFloat("uBloomThreshold", settings.bloomThreshold);
 
-    glBindVertexArray(vertexArray_);
-    glDrawArrays(GL_TRIANGLES, 0, 3);
-    glBindVertexArray(0);
-    glBindTexture(GL_TEXTURE_2D, 0);
+    triangle_.Draw();
+
+    for (int level = BloomChain::kLevels; level >= 0; --level) {
+        glActiveTexture(GL_TEXTURE0 + static_cast<GLenum>(level));
+        glBindTexture(GL_TEXTURE_2D, 0);
+    }
     glUseProgram(0);
 }
 

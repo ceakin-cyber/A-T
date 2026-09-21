@@ -1,5 +1,7 @@
 #pragma once
 
+#include "ui/bloom_chain.h"
+#include "ui/fullscreen_triangle.h"
 #include "ui/shader.h"
 
 #include <filesystem>
@@ -12,6 +14,10 @@ struct CrtSettings {
     float scanlineIntensity = 0.21F; // 0 to 1: how dark the dark rows get
     float scanlinePeriod = 8.0F;     // rows from one dark band to the next; even values reach
                                      // the full intensity, odd values fall slightly short
+
+    float bloomIntensity = 0.67F; // 0 turns the glow off
+    float bloomSpread = 2.0F;     // halo width: 0 is a few pixels, and each step doubles it
+    float bloomThreshold = 0.05F; // 0 to 1: how bright something must be to glow
 };
 
 // Draws a texture over the whole window through a fragment shader. This is the last step of a
@@ -34,12 +40,15 @@ class ScreenPass {
 
     bool IsValid() const { return shader_.IsValid(); }
 
-    // Draws `texture` to the window's framebuffer, which must be width by height pixels.
-    void Draw(GLuint texture, int width, int height, const CrtSettings& settings) const;
+    // Draws `texture` to the window's framebuffer, which must be width by height pixels. The
+    // glow reads the blurred copies in `bloom`, which must have been built from the same texture
+    // (see BloomChain::Build) whenever settings.bloomIntensity is above zero.
+    void Draw(GLuint texture, int width, int height, const CrtSettings& settings,
+              const BloomChain& bloom) const;
 
   private:
     Shader shader_;
-    GLuint vertexArray_ = 0;
+    FullscreenTriangle triangle_;
 };
 
 } // namespace ui

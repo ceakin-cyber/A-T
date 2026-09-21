@@ -24,13 +24,20 @@ void DrawCrtTuningPanel(CrtSettings& settings, bool& open, float headerHeight) {
             settings.scanlinePeriod = static_cast<float>(period);
         }
 
+        ImGui::SliderFloat("GLOW STRENGTH", &settings.bloomIntensity, 0.0F, 2.0F, "%.2f");
+        ImGui::SliderFloat("GLOW SPREAD", &settings.bloomSpread, 0.0F, 5.0F, "%.1f");
+        ImGui::SliderFloat("GLOW THRESHOLD", &settings.bloomThreshold, 0.0F, 1.0F, "%.2f");
+
         if (ImGui::Button("RESET")) {
             settings = CrtSettings{};
         }
         ImGui::SameLine();
         if (ImGui::Button("PRINT")) {
             std::cout << "CrtSettings: scanlineIntensity = " << settings.scanlineIntensity
-                      << ", scanlinePeriod = " << settings.scanlinePeriod << '\n';
+                      << ", scanlinePeriod = " << settings.scanlinePeriod
+                      << ", bloomIntensity = " << settings.bloomIntensity
+                      << ", bloomSpread = " << settings.bloomSpread
+                      << ", bloomThreshold = " << settings.bloomThreshold << '\n';
         }
     }
     ImGui::End();

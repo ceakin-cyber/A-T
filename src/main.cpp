@@ -2,6 +2,7 @@
 #include "app/pass_planner.h"
 #include "app/satellite_position.h"
 #include "app/tracked_satellite.h"
+#include "ui/bloom_chain.h"
 #include "ui/crt_tuning_panel.h"
 #include "ui/framebuffer.h"
 #include "ui/header.h"
@@ -88,7 +89,9 @@ int main(int /*argc*/, char** argv) {
     ui::CrtSettings crtSettings;
     bool tuningOpen = false; // F2 toggles the CRT tuning panel
     std::cout << "Press F2 to tune the CRT effect\n";
-    const bool haveScreenPass = screenPass.Load(exeDir / "assets" / "shaders");
+    ui::BloomChain bloomChain;
+    const bool haveScreenPass = screenPass.Load(exeDir / "assets" / "shaders") &&
+                                bloomChain.Load(exeDir / "assets" / "shaders");
     if (!haveScreenPass) {
         std::cerr << "Shader pass unavailable, drawing without post-processing\n";
     }
@@ -134,7 +137,10 @@ int main(int /*argc*/, char** argv) {
             ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
             ui::Framebuffer::Unbind();
             if (haveScreenPass) {
-                screenPass.Draw(sceneBuffer.Texture(), width, height, crtSettings);
+                if (crtSettings.bloomIntensity > 0.0F) {
+                    bloomChain.Build(sceneBuffer.Texture(), width, height);
+                }
+                screenPass.Draw(sceneBuffer.Texture(), width, height, crtSettings, bloomChain);
             } else {
                 sceneBuffer.BlitToScreen();
             }
@@ -145,6 +151,7 @@ int main(int /*argc*/, char** argv) {
     }
 
     // Free GL objects while the context still exists.
+    bloomChain.Release();
     screenPass.Release();
     sceneBuffer.Resize(0, 0);
 

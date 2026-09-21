@@ -9,7 +9,9 @@ namespace ui {
 // OpenGL context for every call, including construction and destruction.
 class Framebuffer {
   public:
-    Framebuffer() = default;
+    // `internalFormat` is the texture's storage: GL_RGBA8 (the default) for the picture, or
+    // GL_RGBA16F where small values must not be rounded away, such as blurred glow.
+    explicit Framebuffer(GLint internalFormat = GL_RGBA8) : internalFormat_(internalFormat) {}
     ~Framebuffer();
 
     Framebuffer(const Framebuffer&) = delete;
@@ -36,6 +38,7 @@ class Framebuffer {
   private:
     void Release();
 
+    GLint internalFormat_ = GL_RGBA8;
     GLuint framebuffer_ = 0;
     GLuint texture_ = 0;
     int width_ = 0;
