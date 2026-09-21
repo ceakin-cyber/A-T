@@ -1,4 +1,4 @@
-#include "net/tle_source.h"
+#include "app/tracked_satellite.h"
 #include "ui/header.h"
 #include "ui/style.h"
 
@@ -43,9 +43,16 @@ int main(int /*argc*/, char** argv) {
     }
     std::cout << "OpenGL " << glGetString(GL_VERSION) << '\n';
 
-    // ISS. Printing the raw TLE and parsing it come in later issues.
-    const std::optional<net::LoadedTle> tle = net::LoadTle(25544);
-    std::cout << (tle ? "TLE loaded\n" : "TLE load failed\n");
+    // ISS. If this fails (offline with no cache) the app still runs, just without a satellite.
+    const std::optional<app::TrackedSatellite> satellite = app::LoadSatellite(25544);
+    if (satellite) {
+        std::cout << "Tracking " << satellite->tle.name << " [" << satellite->tle.catalogNumber
+                  << "], TLE epoch " << satellite->tle.epochYear << " day "
+                  << satellite->tle.epochDay << ", from " << net::ToString(satellite->source)
+                  << '\n';
+    } else {
+        std::cerr << "No satellite to track\n";
+    }
 
     IMGUI_CHECKVERSION();
     ImGui::CreateContext();
