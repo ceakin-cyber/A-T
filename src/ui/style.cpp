@@ -8,10 +8,14 @@ namespace {
 
 // Phosphor green at a given brightness (0..1) and alpha.
 ImVec4 Phosphor(float brightness, float alpha = 1.0F) {
-    return ImVec4(0.20F * brightness, 1.00F * brightness, 0.40F * brightness, alpha);
+    return ImVec4(0.20F * brightness, 1.00F * brightness, 0.20F * brightness, alpha);
 }
 
 } // namespace
+
+ImVec4 ScreenBackground() {
+    return ImVec4(0.01F, 0.075F, 0.01F, 1.0F);
+}
 
 ImVec4 WarningColor() {
     return ImVec4(1.00F, 0.69F, 0.00F, 1.0F);
@@ -38,8 +42,8 @@ void ApplyTerminalStyle() {
     style.FrameBorderSize = 0.0F;
     style.WindowTitleAlign = ImVec2(0.0F, 0.5F);
 
-    const ImVec4 background = ImVec4(0.02F, 0.05F, 0.03F, 1.0F);
-    const ImVec4 panel = ImVec4(0.03F, 0.08F, 0.05F, 1.0F);
+    const ImVec4 background = ImVec4(0.01F, 0.05F, 0.01F, 1.0F);
+    const ImVec4 panel = ImVec4(0.02F, 0.08F, 0.02F, 1.0F);
 
     ImVec4* c = style.Colors;
     c[ImGuiCol_Text] = Phosphor(1.0F);

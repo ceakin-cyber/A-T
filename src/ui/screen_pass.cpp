@@ -16,7 +16,7 @@ void ScreenPass::Release() {
 
 bool ScreenPass::Load(const std::filesystem::path& shaderDirectory) {
     Release();
-    if (!shader_.Load(shaderDirectory / "fullscreen.vert", shaderDirectory / "passthrough.frag")) {
+    if (!shader_.Load(shaderDirectory / "fullscreen.vert", shaderDirectory / "crt.frag")) {
         return false;
     }
     // Core profile requires a vertex array object to draw, even with no vertex data.
@@ -24,7 +24,7 @@ bool ScreenPass::Load(const std::filesystem::path& shaderDirectory) {
     return true;
 }
 
-void ScreenPass::Draw(GLuint texture, int width, int height) const {
+void ScreenPass::Draw(GLuint texture, int width, int height, const CrtSettings& settings) const {
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
     glViewport(0, 0, width, height);
 
@@ -38,6 +38,8 @@ void ScreenPass::Draw(GLuint texture, int width, int height) const {
     glActiveTexture(GL_TEXTURE0);
     glBindTexture(GL_TEXTURE_2D, texture);
     shader_.SetInt("uScene", 0);
+    shader_.SetFloat("uScanlineIntensity", settings.scanlineIntensity);
+    shader_.SetFloat("uScanlinePeriod", settings.scanlinePeriod);
 
     glBindVertexArray(vertexArray_);
     glDrawArrays(GL_TRIANGLES, 0, 3);

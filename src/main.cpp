@@ -2,6 +2,7 @@
 #include "app/pass_planner.h"
 #include "app/satellite_position.h"
 #include "app/tracked_satellite.h"
+#include "ui/crt_tuning_panel.h"
 #include "ui/framebuffer.h"
 #include "ui/header.h"
 #include "ui/pass_panel.h"
@@ -84,6 +85,9 @@ int main(int /*argc*/, char** argv) {
     // Draws that target to the window through a shader. If the shaders cannot be loaded, the
     // target is copied across as it is instead.
     ui::ScreenPass screenPass;
+    ui::CrtSettings crtSettings;
+    bool tuningOpen = false; // F2 toggles the CRT tuning panel
+    std::cout << "Press F2 to tune the CRT effect\n";
     const bool haveScreenPass = screenPass.Load(exeDir / "assets" / "shaders");
     if (!haveScreenPass) {
         std::cerr << "Shader pass unavailable, drawing without post-processing\n";
@@ -113,6 +117,10 @@ int main(int /*argc*/, char** argv) {
         const float headerHeight = ui::DrawHeaderBar();
 
         ui::DrawTrackerPanel(satellite ? &*satellite : nullptr, position, now, headerHeight);
+        if (ImGui::IsKeyPressed(ImGuiKey_F2, false)) {
+            tuningOpen = !tuningOpen;
+        }
+        ui::DrawCrtTuningPanel(crtSettings, tuningOpen, headerHeight);
         ui::DrawPassPanel(satellite ? &*satellite : nullptr, nextPass, app::kObserver, now,
                           headerHeight);
         ImGui::Render();
@@ -120,12 +128,13 @@ int main(int /*argc*/, char** argv) {
         // A minimised window has no pixels to draw into; skip drawing until it comes back.
         if (sceneBuffer.Resize(width, height)) {
             sceneBuffer.Bind();
-            glClearColor(0.0F, 0.02F, 0.01F, 1.0F);
+            const ImVec4 background = ui::ScreenBackground();
+            glClearColor(background.x, background.y, background.z, 1.0F);
             glClear(GL_COLOR_BUFFER_BIT);
             ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
             ui::Framebuffer::Unbind();
             if (haveScreenPass) {
-                screenPass.Draw(sceneBuffer.Texture(), width, height);
+                screenPass.Draw(sceneBuffer.Texture(), width, height, crtSettings);
             } else {
                 sceneBuffer.BlitToScreen();
             }
