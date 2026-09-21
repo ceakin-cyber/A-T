@@ -116,4 +116,19 @@ TEST(GreenwichMeanSiderealTime, AlwaysWithinZeroToTwoPi) {
     }
 }
 
+TEST(TimePointFromJulianDate, UnixEpochAndJ2000) {
+    EXPECT_EQ(core::TimePointFromJulianDate(2440587.5), std::chrono::system_clock::time_point{});
+    EXPECT_EQ(core::TimePointFromJulianDate(2451545.0),
+              std::chrono::system_clock::time_point{std::chrono::seconds(946728000)});
+}
+
+TEST(TimePointFromJulianDate, IsTheInverseOfJulianDateFromTimePoint) {
+    for (const long long seconds : {0LL, 946728000LL, 1789961692LL, -100000000LL}) {
+        const std::chrono::system_clock::time_point t{std::chrono::seconds(seconds)};
+        const auto back = core::TimePointFromJulianDate(core::JulianDateFromTimePoint(t));
+        // A Julian date in a double resolves about 40 microseconds.
+        EXPECT_LT(std::abs(std::chrono::duration<double>(back - t).count()), 1e-4) << seconds;
+    }
+}
+
 } // namespace
