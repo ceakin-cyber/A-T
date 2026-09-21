@@ -19,6 +19,13 @@ struct Geodetic {
     double altitudeKm = 0.0; // height above the ellipsoid
 };
 
+// Builds a Geodetic from latitude and longitude in degrees, which is how places are usually
+// written down. Usable in constant expressions.
+constexpr Geodetic GeodeticFromDegrees(double latitudeDeg, double longitudeDeg, double altitudeKm) {
+    constexpr double kDegToRad = 3.14159265358979323846 / 180.0;
+    return {latitudeDeg * kDegToRad, longitudeDeg * kDegToRad, altitudeKm};
+}
+
 // Converts an ECEF position in km to geodetic coordinates.
 Geodetic EcefToGeodetic(const Vec3& ecef);
 
