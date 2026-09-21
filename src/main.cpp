@@ -5,6 +5,7 @@
 #include "ui/framebuffer.h"
 #include "ui/header.h"
 #include "ui/pass_panel.h"
+#include "ui/screen_pass.h"
 #include "ui/style.h"
 #include "ui/tracker_panel.h"
 
@@ -80,6 +81,14 @@ int main(int /*argc*/, char** argv) {
     // The UI is drawn into this offscreen target, which is then copied to the window.
     ui::Framebuffer sceneBuffer;
 
+    // Draws that target to the window through a shader. If the shaders cannot be loaded, the
+    // target is copied across as it is instead.
+    ui::ScreenPass screenPass;
+    const bool haveScreenPass = screenPass.Load(exeDir / "assets" / "shaders");
+    if (!haveScreenPass) {
+        std::cerr << "Shader pass unavailable, drawing without post-processing\n";
+    }
+
     std::optional<app::PassPlanner> planner;
     if (satellite) {
         planner.emplace(satellite->model, app::kObserver);
@@ -115,7 +124,11 @@ int main(int /*argc*/, char** argv) {
             glClear(GL_COLOR_BUFFER_BIT);
             ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
             ui::Framebuffer::Unbind();
-            sceneBuffer.BlitToScreen();
+            if (haveScreenPass) {
+                screenPass.Draw(sceneBuffer.Texture(), width, height);
+            } else {
+                sceneBuffer.BlitToScreen();
+            }
         }
 
         glfwSwapBuffers(window);
@@ -123,6 +136,7 @@ int main(int /*argc*/, char** argv) {
     }
 
     // Free GL objects while the context still exists.
+    screenPass.Release();
     sceneBuffer.Resize(0, 0);
 
     ImGui_ImplOpenGL3_Shutdown();
