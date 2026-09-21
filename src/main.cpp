@@ -74,9 +74,10 @@ int main(int /*argc*/, char** argv) {
     ImGui_ImplOpenGL3_Init("#version 410");
 
     while (!glfwWindowShouldClose(window)) {
+        const net::Clock::time_point now = std::chrono::system_clock::now();
         std::optional<app::SatellitePosition> position;
         if (satellite) {
-            position = app::ComputePosition(*satellite, std::chrono::system_clock::now());
+            position = app::ComputePosition(*satellite, now);
         }
 
         int width = 0;
@@ -92,7 +93,7 @@ int main(int /*argc*/, char** argv) {
         ImGui::NewFrame();
         const float headerHeight = ui::DrawHeaderBar();
 
-        ui::DrawTrackerPanel(satellite ? &*satellite : nullptr, position, headerHeight);
+        ui::DrawTrackerPanel(satellite ? &*satellite : nullptr, position, now, headerHeight);
         ImGui::Render();
         ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
 

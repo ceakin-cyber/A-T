@@ -13,6 +13,14 @@ ImVec4 Phosphor(float brightness, float alpha = 1.0F) {
 
 } // namespace
 
+ImVec4 WarningColor() {
+    return ImVec4(1.00F, 0.69F, 0.00F, 1.0F);
+}
+
+ImVec4 CriticalColor() {
+    return ImVec4(1.00F, 0.30F, 0.25F, 1.0F);
+}
+
 void ApplyTerminalStyle() {
     ImGuiStyle& style = ImGui::GetStyle();
 
