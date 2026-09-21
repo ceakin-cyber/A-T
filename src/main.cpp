@@ -2,6 +2,7 @@
 #include "app/tracked_satellite.h"
 #include "ui/header.h"
 #include "ui/style.h"
+#include "ui/tracker_panel.h"
 
 #include <GLFW/glfw3.h>
 #include <chrono>
@@ -11,7 +12,6 @@
 #include <imgui_impl_glfw.h>
 #include <imgui_impl_opengl3.h>
 #include <iostream>
-#include <numbers>
 
 int main(int /*argc*/, char** argv) {
     // Prefer X11: under WSLg the Wayland backend has no title bar or window buttons.
@@ -73,24 +73,10 @@ int main(int /*argc*/, char** argv) {
     ImGui_ImplGlfw_InitForOpenGL(window, true);
     ImGui_ImplOpenGL3_Init("#version 410");
 
-    // Temporary: print the live position once a second until the tracker panel exists.
-    double lastPrintTime = -1.0;
-
     while (!glfwWindowShouldClose(window)) {
         std::optional<app::SatellitePosition> position;
         if (satellite) {
             position = app::ComputePosition(*satellite, std::chrono::system_clock::now());
-            if (glfwGetTime() - lastPrintTime >= 1.0) {
-                lastPrintTime = glfwGetTime();
-                if (position) {
-                    std::cout << "ISS lat "
-                              << position->geodetic.latitude * 180.0 / std::numbers::pi << " lon "
-                              << position->geodetic.longitude * 180.0 / std::numbers::pi << " alt "
-                              << position->geodetic.altitudeKm << " km\n";
-                } else {
-                    std::cout << "ISS position unavailable\n";
-                }
-            }
         }
 
         int width = 0;
@@ -106,13 +92,7 @@ int main(int /*argc*/, char** argv) {
         ImGui::NewFrame();
         const float headerHeight = ui::DrawHeaderBar();
 
-        const ImGuiViewport* viewport = ImGui::GetMainViewport();
-        ImGui::SetNextWindowPos(
-            ImVec2(viewport->Pos.x + 20.0F, viewport->Pos.y + headerHeight + 20.0F),
-            ImGuiCond_FirstUseEver);
-        ImGui::SetNextWindowSize(ImVec2(480.0F, 320.0F), ImGuiCond_FirstUseEver);
-        ImGui::Begin("A-T");
-        ImGui::End();
+        ui::DrawTrackerPanel(satellite ? &*satellite : nullptr, position, headerHeight);
         ImGui::Render();
         ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
 
