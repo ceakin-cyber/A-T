@@ -1,72 +1,118 @@
 # A-T
 
-A retro terminal-style satellite tracker and sky dashboard, written in C++20 with OpenGL and Dear ImGui. It runs its own SGP4 orbit propagator, so positions come from the raw orbital elements and not from a third-party tracking API.
+A retro terminal-style satellite tracker, written in C++20 with OpenGL and Dear ImGui. It runs its own SGP4 orbit propagator, so positions come from the raw orbital elements and not from a third-party tracking API.
 
-> **Status: early development.** The repo is at the scaffolding stage and none of the features below are built yet. This README describes the planned design and roadmap. Sections marked *planned* will change as the code lands.
+> **Status: in development.** The tracker and pass predictor work. The CRT shader pass, the dashboard layout, the star map and the rest of the status panels are still to come. See [Roadmap](#roadmap).
 
-## What it will do
+## What works today
 
-- **Live satellite tracker** (*planned*): shows the ISS's latitude, longitude and altitude in real time, plus how stale the loaded TLE is.
-- **Pass predictor** (*planned*): finds the next rise, maximum elevation and set for a fixed observer location.
-- **Realistic star map** (*planned*): draws the real sky for the observer's location and time from the HYG catalog, with constellation lines. Tracked satellites are overlaid as moving markers against the star field.
-- **Signal quality** (*planned*): reads the live planetary Kp index from NOAA SWPC and reports `STABLE`, `DEGRADED` or `DISRUPTED`.
-- **Lunar alignment** (*planned*): shows moon phase, illumination, age and the next full or new moon, computed locally.
-- **System readout, incoming transmission, relay queue, archive status and event log** (*planned*): status panels driven by real application state. For example, the relay queue reflects the last fetch result, cache validity and pass-prediction status.
-- **Archives** (*planned*): SQLite-backed history of events and completed pass predictions.
-- **CRT post-processing** (*planned*): the UI is rendered to a texture and passed through scanline, bloom and vignette shaders.
+- **Live ISS tracker:** latitude, longitude, altitude and speed, recomputed every frame from the system clock.
+- **TLE age indicator:** how old the loaded orbital elements are, measured from their epoch. It turns amber after 3 days and red after 7, and says `AGING` or `STALE` in text as well.
+- **Next pass panel:** for a fixed observer, the rise, peak and set times (UTC), the peak elevation, the pass length, and a live countdown. If a pass is already under way it shows when it sets.
+- **Orbital data:** the TLE comes from [Celestrak](https://celestrak.org/) and is cached on disk for two hours. If the network fails, the app falls back to a stale cached copy and logs that to the console. With no network and no cache it still starts, and the panels show `NO DATA`.
+- **Terminal look:** the VT323 pixel font, a green phosphor palette, flat square windows, and a status bar across the top. The bar's text is still a hardcoded placeholder.
 
-## Design
+The observer's location is a placeholder at Greenwich (51.4779 N, 0.0 E). Change `kObserver` in `src/app/observer.h` to your own. A config file is planned.
 
-- `src/core/` contains the astronomy code: time utilities (Julian date, GMST), the SGP4 propagator, TEME → ECEF → geodetic and topocentric transforms, pass finding, lunar phase, and star coordinate transforms. It is a standalone library with no UI or network dependencies, and it is unit-tested against reference values.
-- `src/net/` fetches TLEs from [Celestrak](https://celestrak.org/) and the Kp index from NOAA SWPC. Responses are cached on disk, with a fallback to cached data when the network fails.
-- `src/ui/` holds the GLFW, OpenGL and Dear ImGui front end and the post-processing shaders.
-- `tests/` holds the GoogleTest suite. Propagator reference values are generated once offline with [python-sgp4](https://pypi.org/project/sgp4/) and hardcoded as expected results.
+## Planned
+
+- **CRT post-processing:** the UI is rendered to a texture and passed through scanline, bloom and vignette shaders.
+- **Dashboard layout:** panels arranged together with real system status text.
+- **Star map:** the real sky for the observer's location and time from the HYG catalog, with constellation lines and satellites overlaid as moving markers.
+- **More panels:** signal quality from the NOAA planetary Kp index, lunar phase and alignment, an event log, a relay queue, archive status and a SQLite-backed archive.
 
 ## Building
 
-Requires a C++20 compiler, CMake, and an OpenGL-capable system. Dependencies (GLFW, glad, Dear ImGui, cpr, GoogleTest) are fetched through CMake `FetchContent`.
+Requires a C++20 compiler, CMake 3.20 or newer, and an OpenGL-capable desktop. It is developed on Linux (Debian on WSL2). macOS and Windows are untested.
+
+On Debian or Ubuntu, install the system libraries first:
+
+```sh
+sudo apt install build-essential cmake pkg-config libcurl4-openssl-dev \
+    libx11-dev libxrandr-dev libxinerama-dev libxcursor-dev libxi-dev libgl1-mesa-dev \
+    libwayland-dev libxkbcommon-dev wayland-protocols
+```
+
+GLFW, glad, Dear ImGui, cpr and GoogleTest are downloaded by CMake with `FetchContent`, so nothing else needs installing.
 
 ```sh
 cmake -B build
 cmake --build build
+./build/a-t
 ```
 
-These commands work today for the placeholder executable. They won't produce a real application until the later milestones are done.
+Run the tests with:
+
+```sh
+ctest --test-dir build --output-on-failure
+```
+
+The build copies `assets/` next to the executable, so it can be run from any directory. On startup the app prefers the X11 window backend, because under WSLg the Wayland backend draws no title bar or window buttons. It falls back to any other backend if X11 is unavailable.
+
+## Design
+
+The code is layered so that the astronomy has no dependency on the network or the UI:
+
+- `src/core/` is the astronomy library: time utilities (Julian date, sidereal time), the TLE parser, the SGP4 propagator, coordinate transforms (TEME to ECEF to geodetic, and observer-relative azimuth and elevation), and pass finding.
+- `src/net/` fetches TLEs from Celestrak, caches them on disk, and falls back to stale data on failure.
+- `src/app/` joins the two: it loads a satellite, computes its position, plans passes, and formats values for display.
+- `src/ui/` is the GLFW, OpenGL and Dear ImGui front end: the style, the status bar and the panels.
+- `tests/` is the GoogleTest suite.
+
+## Verification
+
+The propagator and the coordinate code are checked against independent references, not only against themselves:
+
+- **SGP4:** positions and velocities match [python-sgp4](https://pypi.org/project/sgp4/) to within 1 mm across seven TLEs and times from a week before to a week after the epoch. The expected values were generated once offline and hardcoded. Vallado's published verification vectors for satellite 00005 are also checked.
+- **Time and Kepler's equation:** worked examples from Meeus's *Astronomical Algorithms* and Vallado's textbook.
+- **Coordinates:** reference points computed independently in high-precision arithmetic.
+- **Passes:** rise, set and peak times agree with an independent calculation to within 0.02 s.
+- **End to end:** on 2026-09-20 the ISS position agreed with the separate tracker at wheretheiss.at to 2.4 km, entirely along the direction of travel. That comparison is kept as an offline test.
+
+## Limitations
+
+- Only near-Earth satellites (orbital period under 225 minutes) are supported. Deep-space orbits need the SDP4 model, which is not implemented, and are rejected.
+- Polar motion is ignored, and UT1 is taken to equal UTC. Both are far smaller than the error in the orbital elements themselves.
+- Atmospheric refraction is not applied to elevations.
+- SGP4 accuracy falls with the age of the TLE, by roughly 1 to 3 km per day for the ISS.
+- The TLE is fetched before the window opens. With no network and no cache, startup can wait up to 5 seconds for the request to time out.
 
 ## Roadmap
 
 Work is tracked as GitHub milestones, each split into small single-purpose issues:
 
-| # | Milestone |
-|---|-----------|
-| 0 | Repo and scaffolding |
-| 1 | Window and rendering skeleton |
-| 2 | Visual style pass |
-| 3 | TLE data layer |
-| 4 | Core SGP4 propagator |
-| 5 | Live tracker panel |
-| 6 | Pass predictor panel |
-| 7 | Shader / post-processing pass |
-| 8 | Full dashboard assembly |
-| 9 | Stretch: multiple satellites, config file, ground track, CI tests, release packaging, SDP4 deep-space support |
-| 10 | System readout |
-| 11 | Incoming transmission |
-| 12 | Lunar alignment |
-| 13 | Operating rules |
-| 14 | Signal quality |
-| 15 | Relay queue |
-| 16 | Event log |
-| 17 | Archive status |
-| 18 | Archives |
-| — | Realistic star map |
+| # | Milestone | Status |
+|---|-----------|--------|
+| 0 | Repo and scaffolding | Done |
+| 1 | Window and rendering skeleton | Done |
+| 2 | Visual style pass | Done |
+| 3 | TLE data layer | Done |
+| 4 | Core SGP4 propagator | Done |
+| 5 | Live tracker panel | Done |
+| 6 | Pass predictor panel | Done |
+| 7 | Shader / post-processing pass | Next |
+| 8 | Full dashboard assembly | Planned |
+| 9 | Stretch: multiple satellites, config file, ground track, CI tests, release packaging, SDP4 deep-space support | Planned |
+| 10 | System readout | Planned |
+| 11 | Incoming transmission | Planned |
+| 12 | Lunar alignment | Planned |
+| 13 | Operating rules | Planned |
+| 14 | Signal quality | Planned |
+| 15 | Relay queue | Planned |
+| 16 | Event log | Planned |
+| 17 | Archive status | Planned |
+| 18 | Archives | Planned |
+| — | Realistic star map | Planned |
 
 ## Credits and data sources
 
 - SGP4 model: Hoots and Roehrich, *Spacetrack Report No. 3* (1980), and Vallado, Crawford, Hujsak and Kelso, *Revisiting Spacetrack Report #3* (2006).
+- Time and astronomy algorithms: Meeus, *Astronomical Algorithms*, and Vallado, *Fundamentals of Astrodynamics and Applications*.
 - Orbital elements: [Celestrak](https://celestrak.org/).
-- Space weather: [NOAA Space Weather Prediction Center](https://www.swpc.noaa.gov/).
-- Star catalog: [HYG Database](https://github.com/astronexus/HYG-Database).
-- Dear ImGui, GLFW, glad, cpr and GoogleTest.
+- Reference tracker used for the end-to-end check: [wheretheiss.at](https://wheretheiss.at/).
+- Planned data sources: [NOAA Space Weather Prediction Center](https://www.swpc.noaa.gov/) and the [HYG Database](https://github.com/astronexus/HYG-Database).
+- Font: [VT323](https://fonts.google.com/specimen/VT323), under the SIL Open Font License (see `assets/fonts/OFL.txt`).
+- Libraries: Dear ImGui, GLFW, glad, cpr, libcurl and GoogleTest.
 
 ## License
 
