@@ -2,6 +2,7 @@
 #include "app/pass_planner.h"
 #include "app/satellite_position.h"
 #include "app/tracked_satellite.h"
+#include "ui/framebuffer.h"
 #include "ui/header.h"
 #include "ui/pass_panel.h"
 #include "ui/style.h"
@@ -76,6 +77,9 @@ int main(int /*argc*/, char** argv) {
     ImGui_ImplGlfw_InitForOpenGL(window, true);
     ImGui_ImplOpenGL3_Init("#version 410");
 
+    // The UI is drawn into this offscreen target, which is then copied to the window.
+    ui::Framebuffer sceneBuffer;
+
     std::optional<app::PassPlanner> planner;
     if (satellite) {
         planner.emplace(satellite->model, app::kObserver);
@@ -93,10 +97,6 @@ int main(int /*argc*/, char** argv) {
         int width = 0;
         int height = 0;
         glfwGetFramebufferSize(window, &width, &height);
-        glViewport(0, 0, width, height);
-
-        glClearColor(0.0F, 0.02F, 0.01F, 1.0F);
-        glClear(GL_COLOR_BUFFER_BIT);
 
         ImGui_ImplOpenGL3_NewFrame();
         ImGui_ImplGlfw_NewFrame();
@@ -107,11 +107,23 @@ int main(int /*argc*/, char** argv) {
         ui::DrawPassPanel(satellite ? &*satellite : nullptr, nextPass, app::kObserver, now,
                           headerHeight);
         ImGui::Render();
-        ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
+
+        // A minimised window has no pixels to draw into; skip drawing until it comes back.
+        if (sceneBuffer.Resize(width, height)) {
+            sceneBuffer.Bind();
+            glClearColor(0.0F, 0.02F, 0.01F, 1.0F);
+            glClear(GL_COLOR_BUFFER_BIT);
+            ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
+            ui::Framebuffer::Unbind();
+            sceneBuffer.BlitToScreen();
+        }
 
         glfwSwapBuffers(window);
         glfwPollEvents();
     }
+
+    // Free GL objects while the context still exists.
+    sceneBuffer.Resize(0, 0);
 
     ImGui_ImplOpenGL3_Shutdown();
     ImGui_ImplGlfw_Shutdown();
