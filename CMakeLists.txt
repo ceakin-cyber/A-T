@@ -81,17 +81,20 @@ add_library(app STATIC src/app/format.cpp src/app/pass_planner.cpp src/app/satel
 target_include_directories(app PUBLIC src)
 target_link_libraries(app PUBLIC core net)
 
-add_executable(a-t src/main.cpp src/ui/framebuffer.cpp src/ui/header.cpp src/ui/pass_panel.cpp src/ui/rows.cpp src/ui/style.cpp src/ui/tracker_panel.cpp)
+add_executable(a-t src/main.cpp src/ui/framebuffer.cpp src/ui/header.cpp src/ui/pass_panel.cpp src/ui/rows.cpp src/ui/screen_pass.cpp src/ui/shader.cpp src/ui/style.cpp src/ui/tracker_panel.cpp)
 target_include_directories(a-t PRIVATE src)
 target_link_libraries(a-t PRIVATE app core net glfw glad imgui)
 # glad provides the GL headers; keep GLFW from including its own.
 target_compile_definitions(a-t PRIVATE GLFW_INCLUDE_NONE)
 
-# Copy assets next to the executable so it finds them regardless of the working directory.
-add_custom_command(TARGET a-t POST_BUILD
+# Copy assets next to the executable so it finds them regardless of the working directory. This
+# runs on every build, not only when the executable is relinked, so edits to a shader or font
+# show up without touching any C++ file.
+add_custom_target(copy_assets ALL
   COMMAND ${CMAKE_COMMAND} -E copy_directory
           ${CMAKE_SOURCE_DIR}/assets $<TARGET_FILE_DIR:a-t>/assets
 )
+add_dependencies(a-t copy_assets)
 
 enable_testing()
 add_executable(tests tests/pass_planner_test.cpp tests/passes_test.cpp tests/observer_test.cpp tests/format_test.cpp tests/tle_age_test.cpp tests/satellite_position_test.cpp tests/frames_test.cpp tests/geodetic_test.cpp tests/kepler_test.cpp tests/sgp4_init_test.cpp tests/sgp4_propagate_test.cpp tests/sgp4_secular_test.cpp tests/time_test.cpp tests/tle_test.cpp tests/topocentric_test.cpp tests/tracked_satellite_test.cpp tests/tle_cache_test.cpp tests/tle_source_test.cpp)
