@@ -39,6 +39,13 @@ double JulianDateFromTimePoint(std::chrono::system_clock::time_point time) {
     return kJulianDateOfUnixEpoch + sinceEpoch.count() / kSecondsPerDay;
 }
 
+std::chrono::system_clock::time_point TimePointFromJulianDate(double julianDate) {
+    const std::chrono::duration<double> sinceEpoch((julianDate - kJulianDateOfUnixEpoch) *
+                                                   kSecondsPerDay);
+    return std::chrono::system_clock::time_point(
+        std::chrono::duration_cast<std::chrono::system_clock::duration>(sinceEpoch));
+}
+
 double GreenwichMeanSiderealTime(double julianDate) {
     // Vallado, "Fundamentals of Astrodynamics and Applications", algorithm 15. The polynomial
     // gives sidereal time in seconds; 240 seconds of time correspond to one degree.

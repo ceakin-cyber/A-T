@@ -1,6 +1,9 @@
+#include "app/observer.h"
+#include "app/pass_planner.h"
 #include "app/satellite_position.h"
 #include "app/tracked_satellite.h"
 #include "ui/header.h"
+#include "ui/pass_panel.h"
 #include "ui/style.h"
 #include "ui/tracker_panel.h"
 
@@ -73,11 +76,18 @@ int main(int /*argc*/, char** argv) {
     ImGui_ImplGlfw_InitForOpenGL(window, true);
     ImGui_ImplOpenGL3_Init("#version 410");
 
+    std::optional<app::PassPlanner> planner;
+    if (satellite) {
+        planner.emplace(satellite->model, app::kObserver);
+    }
+
     while (!glfwWindowShouldClose(window)) {
         const net::Clock::time_point now = std::chrono::system_clock::now();
         std::optional<app::SatellitePosition> position;
+        std::optional<core::Pass> nextPass;
         if (satellite) {
             position = app::ComputePosition(*satellite, now);
+            nextPass = planner->Next(now);
         }
 
         int width = 0;
@@ -94,6 +104,8 @@ int main(int /*argc*/, char** argv) {
         const float headerHeight = ui::DrawHeaderBar();
 
         ui::DrawTrackerPanel(satellite ? &*satellite : nullptr, position, now, headerHeight);
+        ui::DrawPassPanel(satellite ? &*satellite : nullptr, nextPass, app::kObserver, now,
+                          headerHeight);
         ImGui::Render();
         ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
 

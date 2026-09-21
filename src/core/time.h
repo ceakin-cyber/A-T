@@ -23,6 +23,9 @@ double JulianDateFromEpoch(int year, double dayOfYear);
 // Julian date of a point on the system clock, which counts from the Unix epoch in UTC.
 double JulianDateFromTimePoint(std::chrono::system_clock::time_point time);
 
+// The system clock time of a Julian date. The inverse of JulianDateFromTimePoint.
+std::chrono::system_clock::time_point TimePointFromJulianDate(double julianDate);
+
 // Greenwich mean sidereal time in radians, in [0, 2*pi), using the IAU-1982 model that SGP4 uses.
 // UT1 is taken to be UTC; the two differ by less than 0.9 s.
 double GreenwichMeanSiderealTime(double julianDate);
