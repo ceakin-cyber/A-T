@@ -81,7 +81,7 @@ add_library(app STATIC src/app/format.cpp src/app/pass_planner.cpp src/app/satel
 target_include_directories(app PUBLIC src)
 target_link_libraries(app PUBLIC core net)
 
-add_executable(a-t src/main.cpp src/ui/framebuffer.cpp src/ui/header.cpp src/ui/pass_panel.cpp src/ui/rows.cpp src/ui/screen_pass.cpp src/ui/shader.cpp src/ui/style.cpp src/ui/tracker_panel.cpp)
+add_executable(a-t src/main.cpp src/ui/crt_tuning_panel.cpp src/ui/framebuffer.cpp src/ui/header.cpp src/ui/pass_panel.cpp src/ui/rows.cpp src/ui/screen_pass.cpp src/ui/shader.cpp src/ui/style.cpp src/ui/tracker_panel.cpp)
 target_include_directories(a-t PRIVATE src)
 target_link_libraries(a-t PRIVATE app core net glfw glad imgui)
 # glad provides the GL headers; keep GLFW from including its own.
