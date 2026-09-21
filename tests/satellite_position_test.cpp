@@ -129,4 +129,50 @@ TEST(ComputePosition, WorksWithTheCurrentSystemClock) {
     }
 }
 
+// Positions reported by a separate tracker, api.wheretheiss.at, on 2026-09-20, together with the
+// Celestrak TLE that was current then. This checks the whole chain (TLE, SGP4, TEME to ECEF,
+// geodetic) against an independent implementation, offline. At the time of writing the two
+// agreed to 2.35 km, entirely along the direction of travel, which is about 0.3 s of ISS motion.
+TEST(ComputePosition, AgreesWithAnIndependentTrackerToWithinAFewKilometres) {
+    const char* const tle =
+        "ISS (ZARYA)\n"
+        "1 25544U 98067A   26263.52959654  .00008422  00000+0  15975-3 0  9999\n"
+        "2 25544  51.6308 188.2246 0004825 162.2847 197.8311 15.49196792586535\n";
+
+    struct Sample {
+        long long unixSeconds;
+        double latitudeDeg;
+        double longitudeDeg;
+        double altitudeKm;
+        double speedKmPerSec;
+    };
+    const Sample samples[] = {
+        {1789961692, -29.138588700603, -22.560802595712, 425.77891164917, 7.656989628605278},
+        {1789961732, -30.9461169329, -20.596427117514, 426.59792399429, 7.656425471773056},
+        {1789961773, -32.760211747134, -18.499419926938, 427.43980991834, 7.655849320982223},
+        {1789961793, -33.629655028294, -17.443519939849, 427.84985257671, 7.6555698054163885},
+    };
+
+    const app::TrackedSatellite satellite = Satellite(tle);
+    for (const Sample& sample : samples) {
+        const auto position = app::ComputePosition(
+            satellite, net::Clock::time_point(std::chrono::seconds(sample.unixSeconds)));
+        ASSERT_TRUE(position.has_value()) << sample.unixSeconds;
+
+        // Distance between the two positions, as points in space.
+        const core::Vec3 reference =
+            core::GeodeticToEcef({sample.latitudeDeg * kPi / 180.0,
+                                  sample.longitudeDeg * kPi / 180.0, sample.altitudeKm});
+        EXPECT_LT(Distance(position->ecef, reference), 4.0) << sample.unixSeconds;
+
+        EXPECT_NEAR(position->geodetic.altitudeKm, sample.altitudeKm, 0.5) << sample.unixSeconds;
+        EXPECT_NEAR(Degrees(position->geodetic.latitude), sample.latitudeDeg, 0.05)
+            << sample.unixSeconds;
+        EXPECT_NEAR(Degrees(position->geodetic.longitude), sample.longitudeDeg, 0.05)
+            << sample.unixSeconds;
+        // Both report the speed relative to the Earth's centre, in an inertial frame.
+        EXPECT_NEAR(position->speedKmPerSec, sample.speedKmPerSec, 0.005) << sample.unixSeconds;
+    }
+}
+
 } // namespace
