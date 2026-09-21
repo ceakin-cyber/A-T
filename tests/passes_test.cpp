@@ -1,6 +1,8 @@
 #include "app/observer.h"
+#include "core/frames.h"
 #include "core/passes.h"
 
+#include <algorithm>
 #include <cmath>
 #include <gtest/gtest.h>
 #include <numbers>
@@ -215,6 +217,161 @@ TEST(ElevationAt, MatchesTheTopocentricTransformDirectly) {
     ASSERT_TRUE(elevation.has_value());
     EXPECT_GE(*elevation, -kPi / 2.0);
     EXPECT_LE(*elevation, kPi / 2.0);
+}
+
+// Peak times and elevations (degrees) for the passes above, from the same independent
+// computation, found by a brute-force sweep every 0.5 s and then every 0.01 s around the best
+// sample, with no search method.
+struct ExpectedPeak {
+    double julianDate;
+    double elevationDeg;
+};
+
+const std::vector<ExpectedPeak>& GreenwichPeaks() {
+    static const std::vector<ExpectedPeak> peaks = {
+        {2461304.104168449, 7.32799259724112},    {2461304.1708255876, 32.79778857270777},
+        {2461304.2379059, 85.26637287923693},     {2461304.3051504977, 83.98151382978762},
+        {2461304.3722181334, 31.398019058281918}, {2461304.4388532643, 6.728583439622397},
+    };
+    return peaks;
+}
+
+const std::vector<ExpectedPeak>& EquatorPeaks() {
+    static const std::vector<ExpectedPeak> peaks = {
+        {2461304.0297964243, 66.89261110311246}, {2461304.446067844, 0.19147330065069557},
+        {2461304.513235179, 75.36626339893797},  {2461304.5803910946, 2.148291583495838},
+        {2461304.996754561, 46.29460473413681},
+    };
+    return peaks;
+}
+
+void ExpectPeaks(const std::vector<core::Pass>& passes, const std::vector<ExpectedPeak>& expected) {
+    ASSERT_EQ(passes.size(), expected.size());
+    for (std::size_t i = 0; i < expected.size(); ++i) {
+        EXPECT_NEAR(passes[i].maxElevationJd, expected[i].julianDate, 0.2 / kSecondsPerDay)
+            << "pass " << i;
+        EXPECT_NEAR(Degrees(passes[i].maxElevation), expected[i].elevationDeg, 0.001)
+            << "pass " << i;
+    }
+}
+
+TEST(MaxElevation, MatchesIndependentPeaksOverGreenwich) {
+    ExpectPeaks(core::FindPasses(Model(), app::kObserver, kEpochJd, kEpochJd + 1.0),
+                GreenwichPeaks());
+}
+
+TEST(MaxElevation, MatchesIndependentPeaksFromTheEquatorIncludingAPassAlreadyInProgress) {
+    const core::Geodetic equator = core::GeodeticFromDegrees(0.0, 0.0, 0.0);
+    ExpectPeaks(core::FindPasses(Model(), equator, kEpochJd, kEpochJd + 1.0), EquatorPeaks());
+}
+
+TEST(MaxElevation, TheReferencePeaksCoverLowAndNearlyOverheadPasses) {
+    // Guards the data itself: the reference spans a 0.19 degree graze up to an 85 degree pass.
+    double lowest = 90.0;
+    double highest = 0.0;
+    for (const ExpectedPeak& peak : GreenwichPeaks()) {
+        lowest = std::min(lowest, peak.elevationDeg);
+        highest = std::max(highest, peak.elevationDeg);
+    }
+    for (const ExpectedPeak& peak : EquatorPeaks()) {
+        lowest = std::min(lowest, peak.elevationDeg);
+    }
+    EXPECT_LT(lowest, 1.0);
+    EXPECT_GT(highest, 80.0);
+}
+
+TEST(MaxElevation, PeakLiesWithinThePassAndNothingInItIsHigher) {
+    const core::Sgp4Model model = Model();
+    const auto passes = core::FindPasses(model, app::kObserver, kEpochJd, kEpochJd + 1.0);
+    ASSERT_FALSE(passes.empty());
+
+    for (const core::Pass& pass : passes) {
+        EXPECT_GE(pass.maxElevationJd, pass.riseJd);
+        EXPECT_LE(pass.maxElevationJd, pass.setJd);
+        EXPECT_GT(pass.maxElevation, 0.0);
+        EXPECT_LE(Degrees(pass.maxElevation), 90.0);
+
+        // Sample the whole pass every 2 s: nothing may beat the reported peak. The curve is flat
+        // at the top, so a 0.05 s time tolerance leaves about 1e-9 rad of room in the value.
+        for (double t = pass.riseJd; t <= pass.setJd; t += 2.0 / kSecondsPerDay) {
+            EXPECT_LE(*core::ElevationAt(model, app::kObserver, t), pass.maxElevation + 1e-7);
+        }
+        // And it is lower a few seconds either side.
+        const double fiveSeconds = 5.0 / kSecondsPerDay;
+        EXPECT_LE(*core::ElevationAt(model, app::kObserver, pass.maxElevationJd - fiveSeconds),
+                  pass.maxElevation);
+        EXPECT_LE(*core::ElevationAt(model, app::kObserver, pass.maxElevationJd + fiveSeconds),
+                  pass.maxElevation);
+    }
+}
+
+TEST(MaxElevation, AnObserverUnderTheGroundTrackSeesAPassAtTheZenith) {
+    const core::Sgp4Model model = Model();
+    const double overheadJd = kEpochJd + 0.4;
+    const auto state = core::Propagate(model, (overheadJd - model.epochJd) * 1440.0);
+    ASSERT_TRUE(state.has_value());
+    core::Geodetic below = core::EcefToGeodetic(core::TemeToEcef(state->position, overheadJd));
+    below.altitudeKm = 0.0;
+
+    const auto passes = core::FindPasses(model, below, overheadJd - 0.05, overheadJd + 0.05);
+    const core::Pass* found = nullptr;
+    for (const core::Pass& pass : passes) {
+        if (pass.riseJd < overheadJd && overheadJd < pass.setJd) {
+            found = &pass;
+        }
+    }
+    ASSERT_NE(found, nullptr);
+    EXPECT_GT(Degrees(found->maxElevation), 89.99);
+    EXPECT_NEAR(found->maxElevationJd, overheadJd, 1.0 / kSecondsPerDay);
+}
+
+TEST(MaxElevation, APassCutOffAfterItsPeakHasItsMaximumAtTheWindowStart) {
+    const ExpectedPass& third = GreenwichPasses()[2];
+    const double start = third.riseJd + 0.75 * (third.setJd - third.riseJd);
+    const core::Sgp4Model model = Model();
+    const auto passes = core::FindPasses(model, app::kObserver, start, start + 0.01);
+    ASSERT_FALSE(passes.empty());
+    EXPECT_TRUE(passes[0].risesBeforeWindow);
+    EXPECT_DOUBLE_EQ(passes[0].maxElevationJd, start);
+    EXPECT_DOUBLE_EQ(passes[0].maxElevation, *core::ElevationAt(model, app::kObserver, start));
+}
+
+TEST(FindMaxElevation, ReturnsAnEdgeWhenTheElevationOnlyRisesOrFallsAcrossTheInterval) {
+    const core::Sgp4Model model = Model();
+    const ExpectedPass& second = GreenwichPasses()[1];
+
+    // Rising: the first minute of a pass, well before its peak.
+    const double riseEnd = second.riseJd + 60.0 / kSecondsPerDay;
+    const auto rising = core::FindMaxElevation(model, app::kObserver, second.riseJd, riseEnd);
+    ASSERT_TRUE(rising.has_value());
+    EXPECT_DOUBLE_EQ(rising->julianDate, riseEnd);
+
+    // Falling: the last minute of a pass, well after its peak.
+    const double setStart = second.setJd - 60.0 / kSecondsPerDay;
+    const auto falling = core::FindMaxElevation(model, app::kObserver, setStart, second.setJd);
+    ASSERT_TRUE(falling.has_value());
+    EXPECT_DOUBLE_EQ(falling->julianDate, setStart);
+}
+
+TEST(FindMaxElevation, ASingleInstantReturnsThatInstant) {
+    const core::Sgp4Model model = Model();
+    const double jd = kEpochJd + 0.1;
+    const auto peak = core::FindMaxElevation(model, app::kObserver, jd, jd);
+    ASSERT_TRUE(peak.has_value());
+    EXPECT_DOUBLE_EQ(peak->julianDate, jd);
+    EXPECT_DOUBLE_EQ(peak->elevation, *core::ElevationAt(model, app::kObserver, jd));
+}
+
+TEST(FindMaxElevation, RejectsAnInvertedInterval) {
+    EXPECT_FALSE(
+        core::FindMaxElevation(Model(), app::kObserver, kEpochJd + 1.0, kEpochJd).has_value());
+}
+
+TEST(FindMaxElevation, ReturnsNulloptWhenThePropagatorFails) {
+    const core::Sgp4Model model = Model(kDecaying);
+    const double epoch = model.epochJd;
+    EXPECT_FALSE(
+        core::FindMaxElevation(model, app::kObserver, epoch + 1.0, epoch + 1.1).has_value());
 }
 
 } // namespace
