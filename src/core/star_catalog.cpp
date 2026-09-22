@@ -155,4 +155,17 @@ std::vector<Star> LoadStarCatalog(const std::filesystem::path& path) {
     return ParseStarCatalog(buffer.str());
 }
 
+std::vector<VisibleStar> VisibleStars(const std::vector<Star>& stars, double observerLatRad,
+                                      double lstRad) {
+    std::vector<VisibleStar> visible;
+    for (const Star& star : stars) {
+        const HorizontalPosition position =
+            EquatorialToHorizontal(star.raRad, star.decRad, observerLatRad, lstRad);
+        if (position.altitudeRad >= 0.0) {
+            visible.push_back({star, position});
+        }
+    }
+    return visible;
+}
+
 } // namespace core

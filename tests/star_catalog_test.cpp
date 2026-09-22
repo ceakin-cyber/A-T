@@ -2,8 +2,17 @@
 
 #include <algorithm>
 #include <gtest/gtest.h>
+#include <numbers>
 
 namespace {
+
+double Radians(double degrees) {
+    return degrees * std::numbers::pi / 180.0;
+}
+
+double Degrees(double radians) {
+    return radians * 180.0 / std::numbers::pi;
+}
 
 const char* const kHeader = "id,hip,hd,hr,gl,bf,proper,ra,dec,dist,pmra,pmdec,rv,mag,absmag,"
                             "spect,ci,x,y,z,vx,vy,vz,rarad,decrad,pmrarad,pmdecrad,bayer,flam,"
@@ -185,6 +194,77 @@ TEST(LoadStarCatalog, ReadsTheRealCommittedCatalog) {
     EXPECT_DOUBLE_EQ(sol->decRad, 0.0);
     EXPECT_DOUBLE_EQ(sol->magnitude, -26.7);
     EXPECT_DOUBLE_EQ(sol->colorIndex, 0.656);
+}
+
+// The three cases below have independently-verified altitudes (see tests/celestial_test.cpp for
+// the same underlying geometry): a star below the horizon, one above it, and one exactly on it
+// (the north celestial pole, dec 90, seen from the equator, lat 0 -- its altitude always equals
+// the observer's latitude).
+
+core::Star MakeStar(int id, double raDeg, double decDeg) {
+    core::Star star;
+    star.id = id;
+    star.raRad = Radians(raDeg);
+    star.decRad = Radians(decDeg);
+    star.magnitude = 3.0;
+    return star;
+}
+
+TEST(VisibleStars, KeepsAStarAboveTheHorizon) {
+    const std::vector<core::Star> stars = {MakeStar(1, 0.0, 60.0)};
+    const auto visible = core::VisibleStars(stars, Radians(40.0), 0.0);
+    ASSERT_EQ(visible.size(), 1U);
+    EXPECT_EQ(visible[0].star.id, 1);
+    EXPECT_NEAR(Degrees(visible[0].position.altitudeRad), 70.0, 1e-9);
+}
+
+TEST(VisibleStars, DropsAStarBelowTheHorizon) {
+    const std::vector<core::Star> stars = {MakeStar(2, 0.0, -80.0)};
+    EXPECT_TRUE(core::VisibleStars(stars, Radians(40.0), 0.0).empty());
+}
+
+TEST(VisibleStars, KeepsAStarRightAtTheCutoffAndDropsOneJustBelowIt) {
+    // "Below the horizon" means strictly negative altitude, so exactly 0 degrees should be kept.
+    // In floating point, trig never lands on an exact mathematical 0 (dec 90 seen from the
+    // equator is 0 degrees altitude in theory, but computes to about 1.3e-17, not 0.0), so the
+    // boundary is exercised here with two stars a controlled 0.01 degrees to either side of it
+    // instead, independently verified in Python: dec 89.99 is +0.01 degrees (kept), dec 90.01 is
+    // -0.01 degrees (dropped).
+    const std::vector<core::Star> stars = {MakeStar(3, 0.0, 89.99), MakeStar(4, 0.0, 90.01)};
+    const auto visible = core::VisibleStars(stars, Radians(0.0), 0.0);
+    ASSERT_EQ(visible.size(), 1U);
+    EXPECT_EQ(visible[0].star.id, 3);
+    EXPECT_NEAR(Degrees(visible[0].position.altitudeRad), 0.01, 1e-9);
+}
+
+TEST(VisibleStars, FiltersAMixOfStarsKeepingOnlyThoseAboveOrOnTheHorizon) {
+    const std::vector<core::Star> stars = {MakeStar(1, 0.0, 60.0), MakeStar(2, 0.0, -80.0),
+                                           MakeStar(4, 10.0, 70.0)};
+    const auto visible = core::VisibleStars(stars, Radians(40.0), 0.0);
+    ASSERT_EQ(visible.size(), 2U);
+    EXPECT_EQ(visible[0].star.id, 1);
+    EXPECT_EQ(visible[1].star.id, 4);
+}
+
+TEST(VisibleStars, EmptyInputGivesEmptyOutput) {
+    EXPECT_TRUE(core::VisibleStars({}, Radians(40.0), 0.0).empty());
+}
+
+TEST(VisibleStars, EveryStarBelowTheHorizonGivesAnEmptyList) {
+    const std::vector<core::Star> stars = {MakeStar(1, 0.0, -80.0), MakeStar(2, 20.0, -85.0)};
+    EXPECT_TRUE(core::VisibleStars(stars, Radians(40.0), 0.0).empty());
+}
+
+TEST(VisibleStars, ThePositionMatchesCallingTheTransformDirectly) {
+    // RA 0, dec 60, observer lat 40, LST 0: independently verified above the horizon at
+    // altitude 70 degrees (see tests/celestial_test.cpp).
+    const std::vector<core::Star> stars = {MakeStar(5, 0.0, 60.0)};
+    const auto visible = core::VisibleStars(stars, Radians(40.0), 0.0);
+    ASSERT_EQ(visible.size(), 1U);
+    const auto expected =
+        core::EquatorialToHorizontal(Radians(0.0), Radians(60.0), Radians(40.0), 0.0);
+    EXPECT_DOUBLE_EQ(visible[0].position.altitudeRad, expected.altitudeRad);
+    EXPECT_DOUBLE_EQ(visible[0].position.azimuthRad, expected.azimuthRad);
 }
 
 } // namespace
