@@ -1,5 +1,7 @@
 #include "app/config.h"
 #include "app/satellite_roster.h"
+#include "core/star_catalog.h"
+#include "core/time.h"
 #include "ui/bloom_chain.h"
 #include "ui/crt_tuning_panel.h"
 #include "ui/dockspace.h"
@@ -9,6 +11,7 @@
 #include "ui/header.h"
 #include "ui/pass_panel.h"
 #include "ui/screen_pass.h"
+#include "ui/star_map_panel.h"
 #include "ui/style.h"
 #include "ui/tracker_panel.h"
 #include "ui/watchlist_panel.h"
@@ -111,10 +114,20 @@ int main(int /*argc*/, char** argv) {
         std::cerr << "Shader pass unavailable, drawing without post-processing\n";
     }
 
+    // Loaded once; magnitude filtering is already done in the shipped catalog file.
+    const std::vector<core::Star> starCatalog =
+        core::LoadStarCatalog(exeDir / "assets" / "stars" / "hygdata_mag6.csv");
+    std::cout << "Star catalog: " << starCatalog.size() << " stars\n";
+
     while (!glfwWindowShouldClose(window)) {
         const net::Clock::time_point now = std::chrono::system_clock::now();
         roster.Update(now);
         const app::WatchedSatellite& selected = roster.Selected();
+
+        const double julianDate = core::JulianDateFromTimePoint(now);
+        const double lst = core::LocalSiderealTime(julianDate, config.observer.longitude);
+        const std::vector<core::VisibleStar> visibleStars =
+            core::VisibleStars(starCatalog, config.observer.latitude, lst);
 
         int width = 0;
         int height = 0;
@@ -136,6 +149,7 @@ int main(int /*argc*/, char** argv) {
         ui::DrawCrtTuningPanel(crtSettings, tuningOpen, headerHeight);
         ui::DrawPassPanel(selectedSatellite, selected.nextPass, config.observer, now, headerHeight);
         ui::DrawGroundTrackPanel(&selected, config.observer);
+        ui::DrawStarMapPanel(visibleStars);
         ui::DrawEventLogPanel(selected.eventLog);
         ImGui::Render();
 
