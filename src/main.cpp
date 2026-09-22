@@ -44,6 +44,9 @@ int main(int /*argc*/, char** argv) {
         return 1;
     }
     glfwMakeContextCurrent(window);
+    // Sync to the display's refresh rate, so the render loop doesn't spin faster than the
+    // monitor can show and the frame rate stays a meaningful, steady number.
+    glfwSwapInterval(1);
 
     if (!gladLoadGLLoader(reinterpret_cast<GLADloadproc>(glfwGetProcAddress))) {
         std::cerr << "GL loader failed\n";
