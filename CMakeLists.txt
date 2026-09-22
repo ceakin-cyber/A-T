@@ -96,6 +96,29 @@ add_custom_target(copy_assets ALL
 )
 add_dependencies(a-t copy_assets)
 
+# Installing (and packaging, below) puts the executable and assets/ side by side in the same
+# directory, matching the layout the app expects at runtime (assets/ next to the executable).
+# The "runtime" component is what gets packaged, below, so files that bundled dependencies (such
+# as cpr) install for their own use are not swept into the release archive with them.
+install(TARGETS a-t RUNTIME DESTINATION . COMPONENT runtime)
+install(DIRECTORY assets/ DESTINATION assets COMPONENT runtime)
+
+set(CPACK_PACKAGE_NAME "a-t")
+set(CPACK_PACKAGE_VERSION "${PROJECT_VERSION}")
+# The actual archive is named <this>-runtime.tar.gz: CPack appends the component name for a
+# component-based archive. "runtime" also reads fine as a name, so this is left as is rather
+# than fought.
+set(CPACK_PACKAGE_FILE_NAME "a-t-${PROJECT_VERSION}-${CMAKE_SYSTEM_NAME}")
+set(CPACK_GENERATOR "TGZ")
+set(CPACK_PACKAGE_DIRECTORY "${CMAKE_BINARY_DIR}/package")
+set(CPACK_ARCHIVE_COMPONENT_INSTALL ON)
+set(CPACK_COMPONENTS_ALL runtime)
+# Component archives use CPACK_COMPONENT_INCLUDE_TOPLEVEL_DIRECTORY, not the plain
+# CPACK_INCLUDE_TOPLEVEL_DIRECTORY; without it, extracting drops a-t and assets/ straight into
+# the current directory instead of a folder of their own.
+set(CPACK_COMPONENT_INCLUDE_TOPLEVEL_DIRECTORY ON)
+include(CPack)
+
 enable_testing()
 add_executable(tests tests/config_test.cpp tests/event_log_test.cpp tests/ground_track_test.cpp tests/satellite_roster_test.cpp tests/pass_planner_test.cpp tests/passes_test.cpp tests/observer_test.cpp tests/format_test.cpp tests/tle_age_test.cpp tests/satellite_position_test.cpp tests/frames_test.cpp tests/geodetic_test.cpp tests/kepler_test.cpp tests/sgp4_init_test.cpp tests/sgp4_propagate_test.cpp tests/sgp4_secular_test.cpp tests/time_test.cpp tests/tle_test.cpp tests/topocentric_test.cpp tests/tracked_satellite_test.cpp tests/tle_cache_test.cpp tests/tle_source_test.cpp)
 target_link_libraries(tests PRIVATE app core net GTest::gtest_main)
