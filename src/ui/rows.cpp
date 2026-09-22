@@ -14,4 +14,8 @@ void LabelValueRow(const char* label, const std::string& value, const ImVec4* co
     }
 }
 
+void PlaceholderText(const char* text) {
+    ImGui::TextDisabled("%s", text);
+}
+
 } // namespace ui

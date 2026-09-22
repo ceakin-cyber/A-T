@@ -45,7 +45,7 @@ void DrawTrackerPanel(const app::TrackedSatellite* satellite,
 
     if (ImGui::Begin("ISS TRACKER", nullptr, ImGuiWindowFlags_AlwaysAutoResize)) {
         if (satellite == nullptr) {
-            ImGui::TextUnformatted("NO DATA");
+            PlaceholderText("NO DATA");
         } else if (ImGui::BeginTable("##fields", 2, ImGuiTableFlags_SizingFixedFit)) {
             ImGui::TableSetupColumn("label", ImGuiTableColumnFlags_WidthFixed, 110.0F);
             ImGui::TableSetupColumn("value", ImGuiTableColumnFlags_WidthFixed, 180.0F);

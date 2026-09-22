@@ -1,6 +1,7 @@
 #include "ui/event_log_panel.h"
 
 #include "app/format.h"
+#include "ui/rows.h"
 
 #include <imgui.h>
 
@@ -13,7 +14,7 @@ void DrawEventLogPanel(const app::EventLog& log) {
     }
 
     if (log.Entries().empty()) {
-        ImGui::TextDisabled("AWAITING EVENTS...");
+        PlaceholderText("AWAITING EVENTS...");
     } else {
         for (const app::LogEntry& entry : log.Entries()) {
             ImGui::TextDisabled("%s", app::FormatUtcTime(entry.time).c_str());
