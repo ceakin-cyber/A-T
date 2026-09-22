@@ -15,7 +15,10 @@ void DrawCrtTuningPanel(CrtSettings& settings, bool& open, float headerHeight) {
         ImVec2(viewport->Pos.x + 20.0F, viewport->Pos.y + headerHeight + 300.0F),
         ImGuiCond_FirstUseEver);
 
-    if (ImGui::Begin("CRT TUNING (F2)", &open, ImGuiWindowFlags_AlwaysAutoResize)) {
+    // A developer tool, not part of the dashboard: it never docks into it.
+    constexpr ImGuiWindowFlags kFlags =
+        ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoDocking;
+    if (ImGui::Begin("CRT TUNING (F2)", &open, kFlags)) {
         // ImGui's own smoothed average, to check the effects below don't cost the frame rate.
         const ImGuiIO& io = ImGui::GetIO();
         ImGui::Text("%.2f MS/FRAME (%.0f FPS)", 1000.0F / io.Framerate, io.Framerate);

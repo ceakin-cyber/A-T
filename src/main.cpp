@@ -4,6 +4,7 @@
 #include "app/tracked_satellite.h"
 #include "ui/bloom_chain.h"
 #include "ui/crt_tuning_panel.h"
+#include "ui/dockspace.h"
 #include "ui/framebuffer.h"
 #include "ui/header.h"
 #include "ui/pass_panel.h"
@@ -69,6 +70,7 @@ int main(int /*argc*/, char** argv) {
 
     IMGUI_CHECKVERSION();
     ImGui::CreateContext();
+    ImGui::GetIO().ConfigFlags |= ImGuiConfigFlags_DockingEnable;
     ui::ApplyTerminalStyle();
 
     // Assets are copied next to the executable by CMake.
@@ -121,6 +123,7 @@ int main(int /*argc*/, char** argv) {
         ImGui_ImplGlfw_NewFrame();
         ImGui::NewFrame();
         const float headerHeight = ui::DrawHeaderBar();
+        ui::DrawDockSpace(headerHeight);
 
         ui::DrawTrackerPanel(satellite ? &*satellite : nullptr, position, now, headerHeight);
         if (ImGui::IsKeyPressed(ImGuiKey_F2, false)) {
