@@ -185,4 +185,45 @@ StarPointStyle MagnitudeToPointStyle(double magnitude) {
     return style;
 }
 
+namespace {
+
+struct ColorAnchor {
+    double colorIndex;
+    Rgb color;
+};
+
+// Anchor points of the blue-to-red ramp, in ascending color index order. Chosen to look
+// reasonable, not taken from a verified scientific color table (see the header comment on
+// ColorIndexToRgb).
+constexpr ColorAnchor kColorAnchors[] = {
+    {-0.4, {0.61F, 0.70F, 1.00F}}, // hottest, blue
+    {0.0, {0.80F, 0.85F, 1.00F}},  // blue-white
+    {0.4, {1.00F, 0.98F, 0.95F}},  // white
+    {0.7, {1.00F, 0.92F, 0.80F}},  // yellow-white (the Sun's own color index is 0.656)
+    {1.0, {1.00F, 0.80F, 0.60F}},  // orange
+    {1.6, {1.00F, 0.65F, 0.45F}},  // red-orange
+    {2.0, {1.00F, 0.50F, 0.40F}},  // coolest, red
+};
+
+} // namespace
+
+Rgb ColorIndexToRgb(double colorIndex) {
+    colorIndex = std::clamp(colorIndex, kBluestColorIndex, kReddestColorIndex);
+
+    constexpr std::size_t kAnchorCount = sizeof(kColorAnchors) / sizeof(kColorAnchors[0]);
+    for (std::size_t i = 0; i + 1 < kAnchorCount; ++i) {
+        const ColorAnchor& a = kColorAnchors[i];
+        const ColorAnchor& b = kColorAnchors[i + 1];
+        if (colorIndex <= b.colorIndex) {
+            const double t = (colorIndex - a.colorIndex) / (b.colorIndex - a.colorIndex);
+            const auto lerp = [t](float from, float to) {
+                return static_cast<float>(from + t * (to - from));
+            };
+            return {lerp(a.color.r, b.color.r), lerp(a.color.g, b.color.g),
+                    lerp(a.color.b, b.color.b)};
+        }
+    }
+    return kColorAnchors[kAnchorCount - 1].color;
+}
+
 } // namespace core

@@ -54,4 +54,20 @@ inline constexpr double kFaintestStyledMagnitude = 6.0;   // matches the catalog
 
 StarPointStyle MagnitudeToPointStyle(double magnitude);
 
+// A color, components in [0, 1].
+struct Rgb {
+    float r = 1.0F;
+    float g = 1.0F;
+    float b = 1.0F;
+};
+
+inline constexpr double kBluestColorIndex = -0.4; // hottest real stars (spectral type O)
+inline constexpr double kReddestColorIndex = 2.0; // coolest real stars (spectral type M)
+
+// An approximate color for a star's B-V color index: blue for the hottest stars, through white
+// near a color index of about 0.4, to red for the coolest. This is a stylistic approximation
+// hand-picked to look reasonable, not a value taken from a verified scientific color table;
+// colorIndex outside [kBluestColorIndex, kReddestColorIndex] is clamped to the nearer endpoint.
+Rgb ColorIndexToRgb(double colorIndex);
+
 } // namespace core
