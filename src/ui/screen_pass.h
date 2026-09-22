@@ -18,6 +18,9 @@ struct CrtSettings {
     float bloomIntensity = 0.67F; // 0 turns the glow off
     float bloomSpread = 2.0F;     // halo width: 0 is a few pixels, and each step doubles it
     float bloomThreshold = 0.05F; // 0 to 1: how bright something must be to glow
+
+    float vignetteIntensity = 0.6F; // 0 turns the vignette off; 1 takes the far corners to black
+    float vignetteRadius = 0.4F;    // 0 to 1: how far out from the centre it starts
 };
 
 // Draws a texture over the whole window through a fragment shader. This is the last step of a

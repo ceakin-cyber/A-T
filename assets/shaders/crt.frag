@@ -24,6 +24,11 @@ uniform sampler2D uBloom4;
 uniform sampler2D uBloom5;
 uniform sampler2D uBloom6;
 
+// Vignette: the corners darken smoothly. 0 = off, 1 = the far corners go to black.
+uniform float uVignetteIntensity;
+// Fraction of the distance from the centre to a corner where the darkening starts (0 to 1).
+uniform float uVignetteRadius;
+
 in vec2 vUv;
 out vec4 fragColor;
 
@@ -67,7 +72,19 @@ vec3 Glow() {
     return max(blurred - vec3(uBloomThreshold), vec3(0.0)) * uBloomIntensity;
 }
 
+// Darkening factor from the vignette: 1 at the centre, down to 1 - uVignetteIntensity at the
+// farthest corner. vUv is [0,1] across the screen; (0.5, 0.5) is the centre and a corner is at
+// distance sqrt(0.5) = 0.7071 from it.
+float Vignette() {
+    if (uVignetteIntensity <= 0.0) {
+        return 1.0;
+    }
+    float distanceFromCentre = length(vUv - vec2(0.5)) / 0.70710678;
+    float falloff = smoothstep(uVignetteRadius, 1.0, distanceFromCentre);
+    return 1.0 - uVignetteIntensity * falloff;
+}
+
 void main() {
     vec4 scene = texture(uScene, vUv);
-    fragColor = vec4(scene.rgb * Scanlines() + Glow(), scene.a);
+    fragColor = vec4((scene.rgb * Scanlines() + Glow()) * Vignette(), scene.a);
 }

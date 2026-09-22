@@ -50,6 +50,8 @@ void ScreenPass::Draw(GLuint texture, int width, int height, const CrtSettings& 
     shader_.SetFloat("uBloomIntensity", settings.bloomIntensity);
     shader_.SetFloat("uBloomSpread", settings.bloomSpread);
     shader_.SetFloat("uBloomThreshold", settings.bloomThreshold);
+    shader_.SetFloat("uVignetteIntensity", settings.vignetteIntensity);
+    shader_.SetFloat("uVignetteRadius", settings.vignetteRadius);
 
     triangle_.Draw();
 
