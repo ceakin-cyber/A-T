@@ -5,6 +5,7 @@
 #include "ui/dockspace.h"
 #include "ui/event_log_panel.h"
 #include "ui/framebuffer.h"
+#include "ui/ground_track_panel.h"
 #include "ui/header.h"
 #include "ui/pass_panel.h"
 #include "ui/screen_pass.h"
@@ -134,6 +135,7 @@ int main(int /*argc*/, char** argv) {
         }
         ui::DrawCrtTuningPanel(crtSettings, tuningOpen, headerHeight);
         ui::DrawPassPanel(selectedSatellite, selected.nextPass, config.observer, now, headerHeight);
+        ui::DrawGroundTrackPanel(&selected, config.observer);
         ui::DrawEventLogPanel(selected.eventLog);
         ImGui::Render();
 
