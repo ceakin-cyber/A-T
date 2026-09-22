@@ -34,13 +34,15 @@ void DrawDockSpace(float headerHeight) {
         ImGui::DockBuilderAddNode(dockSpaceId, ImGuiDockNodeFlags_PassthruCentralNode);
         ImGui::DockBuilderSetNodeSize(dockSpaceId, viewport->Size);
 
+        ImGuiID top = 0;
+        ImGuiID bottom = 0;
+        ImGui::DockBuilderSplitNode(dockSpaceId, ImGuiDir_Down, 0.3F, &bottom, &top);
         ImGuiID left = 0;
         ImGuiID right = 0;
-        ImGui::DockBuilderSplitNode(dockSpaceId, ImGuiDir_Left, 0.5F, &left, &right);
+        ImGui::DockBuilderSplitNode(top, ImGuiDir_Left, 0.5F, &left, &right);
         ImGui::DockBuilderDockWindow("ISS TRACKER", left);
         ImGui::DockBuilderDockWindow("NEXT PASS", right);
-        // A future event log panel (Milestone 16) belongs at the bottom of this space: split
-        // `left` or `right` downward and dock it there once that panel exists.
+        ImGui::DockBuilderDockWindow("EVENT LOG", bottom);
         ImGui::DockBuilderFinish(dockSpaceId);
     }
 
