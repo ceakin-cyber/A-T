@@ -2,24 +2,28 @@
 
 A retro terminal-style satellite tracker, written in C++20 with OpenGL and Dear ImGui. It runs its own SGP4 orbit propagator, so positions come from the raw orbital elements and not from a third-party tracking API.
 
-> **Status: in development.** The tracker and pass predictor work. The CRT shader pass, the dashboard layout, the star map and the rest of the status panels are still to come. See [Roadmap](#roadmap).
+![A-T dashboard: ISS tracker, next pass and event log panels, with a scanline and glow CRT effect](docs/screenshot.png)
+
+> **Status: in development.** The dashboard — tracker, pass predictor, event log, CRT shader and header status — is assembled and working. The star map and the remaining status panels (signal quality, lunar alignment, archives, and the rest) are still to come. See [Roadmap](#roadmap).
 
 ## What works today
 
-- **Live ISS tracker:** latitude, longitude, altitude and speed, recomputed every frame from the system clock.
-- **TLE age indicator:** how old the loaded orbital elements are, measured from their epoch. It turns amber after 3 days and red after 7, and says `AGING` or `STALE` in text as well.
+- **Live ISS tracker:** latitude, longitude, altitude and speed, recomputed every frame from the system clock, plus a TLE age indicator that turns amber after 3 days and red after 7.
 - **Next pass panel:** for a fixed observer, the rise, peak and set times (UTC), the peak elevation, the pass length, and a live countdown. If a pass is already under way it shows when it sets.
-- **Orbital data:** the TLE comes from [Celestrak](https://celestrak.org/) and is cached on disk for two hours. If the network fails, the app falls back to a stale cached copy and logs that to the console. With no network and no cache it still starts, and the panels show `NO DATA`.
-- **Terminal look:** the VT323 pixel font, a green phosphor palette, flat square windows, and a status bar across the top. The bar's text is still a hardcoded placeholder.
+- **Event log:** logs real `SIGNAL ACQUIRED` / `SIGNAL LOST` transitions as the satellite rises and sets.
+- **Header status:** `NODE: ONLINE` or `OFFLINE`, and `MODE: LIVE`, `CACHED` or `LOW-VISIBILITY`, reflecting whether the TLE came from the network, a fresh cache, or a stale one after a failed fetch.
+- **Dockable dashboard:** the panels above are arranged with a real ImGui dockspace, so they can be dragged, resized and rearranged; your layout is remembered between runs.
+- **CRT post-processing:** the picture is rendered to a texture and passed through scanline, glow and vignette shaders. Press **F2** in the running app to tune all three live and see the frame cost.
+- **Orbital data:** the TLE comes from [Celestrak](https://celestrak.org/) and is cached on disk for two hours. If the network fails, the app falls back to a stale cached copy. With no network and no cache it still starts, and the panels show `NO DATA`.
+- **Terminal look:** the VT323 pixel font, a green phosphor palette, and flat, square, minimal-border windows throughout.
 
 The observer's location is a placeholder at Greenwich (51.4779 N, 0.0 E). Change `kObserver` in `src/app/observer.h` to your own. A config file is planned.
 
 ## Planned
 
-- **CRT post-processing:** the UI is rendered to a texture and passed through scanline, bloom and vignette shaders.
-- **Dashboard layout:** panels arranged together with real system status text.
 - **Star map:** the real sky for the observer's location and time from the HYG catalog, with constellation lines and satellites overlaid as moving markers.
-- **More panels:** signal quality from the NOAA planetary Kp index, lunar phase and alignment, an event log, a relay queue, archive status and a SQLite-backed archive.
+- **More panels:** signal quality from the NOAA planetary Kp index, lunar phase and alignment, a relay queue, archive status and a SQLite-backed archive, and operating rules read from a config file.
+- **Stretch:** multiple tracked satellites, a config file for observer location and watchlist, CI running the test suite, a packaged release binary, and SDP4 support for deep-space satellites.
 
 ## Building
 
@@ -55,8 +59,9 @@ The code is layered so that the astronomy has no dependency on the network or th
 
 - `src/core/` is the astronomy library: time utilities (Julian date, sidereal time), the TLE parser, the SGP4 propagator, coordinate transforms (TEME to ECEF to geodetic, and observer-relative azimuth and elevation), and pass finding.
 - `src/net/` fetches TLEs from Celestrak, caches them on disk, and falls back to stale data on failure.
-- `src/app/` joins the two: it loads a satellite, computes its position, plans passes, and formats values for display.
-- `src/ui/` is the GLFW, OpenGL and Dear ImGui front end: the style, the status bar and the panels.
+- `src/app/` joins the two: it loads a satellite, computes its position, plans passes, logs events, and formats values for display.
+- `src/ui/` is the GLFW, OpenGL and Dear ImGui front end: the style, the dockable dashboard, the panels, and the CRT post-processing shaders.
+- `assets/shaders/` holds the GLSL for the post-processing pass, loaded at runtime, so tuning an effect only needs a restart, not a rebuild.
 - `tests/` is the GoogleTest suite.
 
 ## Verification
@@ -90,8 +95,8 @@ Work is tracked as GitHub milestones, each split into small single-purpose issue
 | 4 | Core SGP4 propagator | Done |
 | 5 | Live tracker panel | Done |
 | 6 | Pass predictor panel | Done |
-| 7 | Shader / post-processing pass | Next |
-| 8 | Full dashboard assembly | Planned |
+| 7 | Shader / post-processing pass | Done |
+| 8 | Full dashboard assembly | Done |
 | 9 | Stretch: multiple satellites, config file, ground track, CI tests, release packaging, SDP4 deep-space support | Planned |
 | 10 | System readout | Planned |
 | 11 | Incoming transmission | Planned |
@@ -99,10 +104,10 @@ Work is tracked as GitHub milestones, each split into small single-purpose issue
 | 13 | Operating rules | Planned |
 | 14 | Signal quality | Planned |
 | 15 | Relay queue | Planned |
-| 16 | Event log | Planned |
+| 16 | Event log (full: severity, ring buffer, persistence) | Planned |
 | 17 | Archive status | Planned |
 | 18 | Archives | Planned |
-| — | Realistic star map | Planned |
+| — | Realistic star map | Next |
 
 ## Credits and data sources
 
