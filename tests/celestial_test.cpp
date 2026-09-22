@@ -3,6 +3,7 @@
 #include <cmath>
 #include <gtest/gtest.h>
 #include <numbers>
+#include <vector>
 
 namespace {
 
@@ -66,14 +67,45 @@ TEST(EquatorialToUnitVector, ACoordinateOnTheEquatorHasZeroZ) {
     }
 }
 
-// Polaris, J2000: RA 2h31m49.09s, Dec +89 15'50.8". Computed independently in Python from these
-// published coordinates, not from this code's own output.
-TEST(EquatorialToUnitVector, MatchesAnIndependentlyComputedRealStar) {
-    const double raDeg = (2.0 + 31.0 / 60.0 + 49.09 / 3600.0) * 15.0;
-    const double decDeg = 89.0 + 15.0 / 60.0 + 50.8 / 3600.0;
-    const core::Vec3 v = core::EquatorialToUnitVector(Radians(raDeg), Radians(decDeg));
-    ExpectVec(v, {0.010126953205375844, 0.007899111853183503, 0.9999175210239628}, 1e-12);
-    EXPECT_NEAR(Norm(v), 1.0, 1e-12);
+// A few well-known bright stars, J2000 coordinates from published catalog values. Expected unit
+// vectors were computed independently in Python from those coordinates, not from this code's
+// own output.
+struct KnownStar {
+    const char* name;
+    double raDeg;
+    double decDeg;
+    core::Vec3 expected;
+};
+
+const std::vector<KnownStar>& KnownStars() {
+    static const std::vector<KnownStar> stars = {
+        // Polaris: RA 2h31m49.09s, Dec +89 15'50.8" -- near the north celestial pole.
+        {"Polaris",
+         (2.0 + 31.0 / 60.0 + 49.09 / 3600.0) * 15.0,
+         89.0 + 15.0 / 60.0 + 50.8 / 3600.0,
+         {0.010126953205375844, 0.007899111853183503, 0.9999175210239628}},
+        // Sirius, the brightest star in the sky: RA 6h45m08.9s, Dec -16 42'58".
+        {"Sirius",
+         (6.0 + 45.0 / 60.0 + 8.9 / 3600.0) * 15.0,
+         -(16.0 + 42.0 / 60.0 + 58.0 / 3600.0),
+         {-0.18745405323332234, 0.9392177877421448, -0.2876298404462758}},
+        // Vega: RA 18h36m56.3s, Dec +38 47'01".
+        {"Vega",
+         (18.0 + 36.0 / 60.0 + 56.3 / 3600.0) * 15.0,
+         38.0 + 47.0 / 60.0 + 1.0 / 3600.0,
+         {0.12509456633092567, -0.7694142985947372, 0.626380863845988}},
+    };
+    return stars;
+}
+
+TEST(EquatorialToUnitVector, MatchesIndependentlyComputedRealStars) {
+    for (const KnownStar& star : KnownStars()) {
+        SCOPED_TRACE(star.name);
+        const core::Vec3 v =
+            core::EquatorialToUnitVector(Radians(star.raDeg), Radians(star.decDeg));
+        ExpectVec(v, star.expected, 1e-12);
+        EXPECT_NEAR(Norm(v), 1.0, 1e-12);
+    }
 }
 
 } // namespace
