@@ -132,7 +132,7 @@ int main(int /*argc*/, char** argv) {
         ImGui_ImplOpenGL3_NewFrame();
         ImGui_ImplGlfw_NewFrame();
         ImGui::NewFrame();
-        const float headerHeight = ui::DrawHeaderBar();
+        const float headerHeight = ui::DrawHeaderBar(satellite ? &*satellite : nullptr);
         ui::DrawDockSpace(headerHeight);
 
         ui::DrawTrackerPanel(satellite ? &*satellite : nullptr, position, now, headerHeight);
