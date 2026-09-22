@@ -1,5 +1,5 @@
+#include "app/config.h"
 #include "app/event_log.h"
-#include "app/observer.h"
 #include "app/pass_planner.h"
 #include "app/satellite_position.h"
 #include "app/tracked_satellite.h"
@@ -60,8 +60,12 @@ int main(int /*argc*/, char** argv) {
     }
     std::cout << "OpenGL " << glGetString(GL_VERSION) << '\n';
 
-    // ISS. If this fails (offline with no cache) the app still runs, just without a satellite.
-    const std::optional<app::TrackedSatellite> satellite = app::LoadSatellite(25544);
+    const app::Config config = app::LoadConfig(app::DefaultConfigDir() / "config.txt");
+
+    // Only the first watchlist entry is tracked today. If this fails (offline with no cache) the
+    // app still runs, just without a satellite.
+    const std::optional<app::TrackedSatellite> satellite =
+        app::LoadSatellite(config.watchlist.front().noradId);
     if (satellite) {
         std::cout << "Tracking " << satellite->tle.name << " [" << satellite->tle.catalogNumber
                   << "], TLE epoch " << satellite->tle.epochYear << " day "
@@ -106,7 +110,7 @@ int main(int /*argc*/, char** argv) {
 
     std::optional<app::PassPlanner> planner;
     if (satellite) {
-        planner.emplace(satellite->model, app::kObserver);
+        planner.emplace(satellite->model, config.observer);
     }
     app::EventLog eventLog;
 
@@ -140,7 +144,7 @@ int main(int /*argc*/, char** argv) {
             tuningOpen = !tuningOpen;
         }
         ui::DrawCrtTuningPanel(crtSettings, tuningOpen, headerHeight);
-        ui::DrawPassPanel(satellite ? &*satellite : nullptr, nextPass, app::kObserver, now,
+        ui::DrawPassPanel(satellite ? &*satellite : nullptr, nextPass, config.observer, now,
                           headerHeight);
         ui::DrawEventLogPanel(eventLog);
         ImGui::Render();
