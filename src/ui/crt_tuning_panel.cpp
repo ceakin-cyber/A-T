@@ -28,6 +28,9 @@ void DrawCrtTuningPanel(CrtSettings& settings, bool& open, float headerHeight) {
         ImGui::SliderFloat("GLOW SPREAD", &settings.bloomSpread, 0.0F, 5.0F, "%.1f");
         ImGui::SliderFloat("GLOW THRESHOLD", &settings.bloomThreshold, 0.0F, 1.0F, "%.2f");
 
+        ImGui::SliderFloat("VIGNETTE STRENGTH", &settings.vignetteIntensity, 0.0F, 1.0F, "%.2f");
+        ImGui::SliderFloat("VIGNETTE RADIUS", &settings.vignetteRadius, 0.0F, 1.0F, "%.2f");
+
         if (ImGui::Button("RESET")) {
             settings = CrtSettings{};
         }
@@ -37,7 +40,9 @@ void DrawCrtTuningPanel(CrtSettings& settings, bool& open, float headerHeight) {
                       << ", scanlinePeriod = " << settings.scanlinePeriod
                       << ", bloomIntensity = " << settings.bloomIntensity
                       << ", bloomSpread = " << settings.bloomSpread
-                      << ", bloomThreshold = " << settings.bloomThreshold << '\n';
+                      << ", bloomThreshold = " << settings.bloomThreshold
+                      << ", vignetteIntensity = " << settings.vignetteIntensity
+                      << ", vignetteRadius = " << settings.vignetteRadius << '\n';
         }
     }
     ImGui::End();
