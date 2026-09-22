@@ -16,6 +16,11 @@ void DrawCrtTuningPanel(CrtSettings& settings, bool& open, float headerHeight) {
         ImGuiCond_FirstUseEver);
 
     if (ImGui::Begin("CRT TUNING (F2)", &open, ImGuiWindowFlags_AlwaysAutoResize)) {
+        // ImGui's own smoothed average, to check the effects below don't cost the frame rate.
+        const ImGuiIO& io = ImGui::GetIO();
+        ImGui::Text("%.2f MS/FRAME (%.0f FPS)", 1000.0F / io.Framerate, io.Framerate);
+        ImGui::Separator();
+
         ImGui::SliderFloat("SCANLINE STRENGTH", &settings.scanlineIntensity, 0.0F, 1.0F, "%.2f");
 
         // The period is whole rows, since a fraction of a row makes an uneven pattern.
