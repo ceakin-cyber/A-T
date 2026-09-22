@@ -16,6 +16,8 @@ using Seconds = std::chrono::duration<double>;
 
 void DrawPassPanel(const app::TrackedSatellite* satellite, const std::optional<core::Pass>& pass,
                    const core::Geodetic& observer, net::Clock::time_point now, float headerHeight) {
+    // Docked into the dashboard's dockspace by default (see ui::DrawDockSpace); this position is
+    // only used the first time the window ever appears, before it has a dock to fall into.
     const ImGuiViewport* viewport = ImGui::GetMainViewport();
     ImGui::SetNextWindowPos(
         ImVec2(viewport->Pos.x + 380.0F, viewport->Pos.y + headerHeight + 20.0F),
