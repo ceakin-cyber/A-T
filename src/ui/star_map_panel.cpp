@@ -35,15 +35,15 @@ void DrawStarMapPanel(const std::vector<core::VisibleStar>& visibleStars) {
     ImDrawList* drawList = ImGui::GetWindowDrawList();
 
     const ImU32 borderColor = ImGui::GetColorU32(ImGuiCol_Text, 0.6F);
-    const ImVec4 starColorBase = ImGui::GetStyleColorVec4(ImGuiCol_Text);
 
     drawList->AddRect(origin, {origin.x + size.x, origin.y + size.y}, borderColor);
 
     for (const core::VisibleStar& visible : visibleStars) {
         const core::StarPointStyle pointStyle = core::MagnitudeToPointStyle(visible.star.magnitude);
+        const core::Rgb tint = core::ColorIndexToRgb(visible.star.colorIndex);
         const ImVec2 p = Project(visible.position, origin, size);
-        const ImU32 starColor = ImGui::ColorConvertFloat4ToU32(
-            {starColorBase.x, starColorBase.y, starColorBase.z, pointStyle.brightness});
+        const ImU32 starColor =
+            ImGui::ColorConvertFloat4ToU32({tint.r, tint.g, tint.b, pointStyle.brightness});
         drawList->AddCircleFilled(p, pointStyle.radiusPx, starColor);
     }
 

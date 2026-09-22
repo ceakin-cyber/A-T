@@ -325,4 +325,81 @@ TEST(MagnitudeToPointStyle, SiriusIsNearTheBrightEndAndTheCutoffIsAtTheDimEnd) {
     EXPECT_FLOAT_EQ(atCutoff.radiusPx, 0.5F);
 }
 
+void ExpectColor(const core::Rgb& actual, float r, float g, float b, float tolerance = 1e-6F) {
+    EXPECT_NEAR(actual.r, r, tolerance);
+    EXPECT_NEAR(actual.g, g, tolerance);
+    EXPECT_NEAR(actual.b, b, tolerance);
+}
+
+TEST(ColorIndexToRgb, MatchesEachAnchorExactly) {
+    ExpectColor(core::ColorIndexToRgb(-0.4), 0.61F, 0.70F, 1.00F);
+    ExpectColor(core::ColorIndexToRgb(0.0), 0.80F, 0.85F, 1.00F);
+    ExpectColor(core::ColorIndexToRgb(0.4), 1.00F, 0.98F, 0.95F);
+    ExpectColor(core::ColorIndexToRgb(0.7), 1.00F, 0.92F, 0.80F);
+    ExpectColor(core::ColorIndexToRgb(1.0), 1.00F, 0.80F, 0.60F);
+    ExpectColor(core::ColorIndexToRgb(1.6), 1.00F, 0.65F, 0.45F);
+    ExpectColor(core::ColorIndexToRgb(2.0), 1.00F, 0.50F, 0.40F);
+}
+
+TEST(ColorIndexToRgb, InterpolatesHalfwayBetweenTwoAnchors) {
+    // Halfway between the 0.0 and 0.4 anchors (color index 0.2).
+    ExpectColor(core::ColorIndexToRgb(0.2), (0.80F + 1.00F) / 2.0F, (0.85F + 0.98F) / 2.0F,
+                (1.00F + 0.95F) / 2.0F, 1e-5F);
+}
+
+TEST(ColorIndexToRgb, BelowTheBluestAnchorClampsToIt) {
+    ExpectColor(core::ColorIndexToRgb(-1.5), 0.61F, 0.70F, 1.00F);
+}
+
+TEST(ColorIndexToRgb, AboveTheReddestAnchorClampsToIt) {
+    ExpectColor(core::ColorIndexToRgb(5.0), 1.00F, 0.50F, 0.40F);
+}
+
+TEST(ColorIndexToRgb, TheBlueComponentNeverIncreasesAsColorIndexRises) {
+    // A meaningful, verifiable-by-construction property even without an external color
+    // reference: warmer (higher color index) stars should never look bluer than cooler ones.
+    float previousBlue = 999.0F;
+    for (double ci = core::kBluestColorIndex; ci <= core::kReddestColorIndex; ci += 0.1) {
+        const core::Rgb color = core::ColorIndexToRgb(ci);
+        EXPECT_LE(color.b, previousBlue + 1e-6F) << ci;
+        previousBlue = color.b;
+    }
+}
+
+TEST(ColorIndexToRgb, RedDominanceNeverDecreasesAsColorIndexRises) {
+    // "Red dominance": how much more red there is than blue. Should not fall as stars get
+    // cooler/redder.
+    float previousDominance = -999.0F;
+    for (double ci = core::kBluestColorIndex; ci <= core::kReddestColorIndex; ci += 0.1) {
+        const core::Rgb color = core::ColorIndexToRgb(ci);
+        const float dominance = color.r - color.b;
+        EXPECT_GE(dominance, previousDominance - 1e-6F) << ci;
+        previousDominance = dominance;
+    }
+}
+
+TEST(ColorIndexToRgb, EveryComponentStaysInZeroToOne) {
+    for (double ci = -2.0; ci <= 3.0; ci += 0.1) {
+        const core::Rgb color = core::ColorIndexToRgb(ci);
+        EXPECT_GE(color.r, 0.0F) << ci;
+        EXPECT_LE(color.r, 1.0F) << ci;
+        EXPECT_GE(color.g, 0.0F) << ci;
+        EXPECT_LE(color.g, 1.0F) << ci;
+        EXPECT_GE(color.b, 0.0F) << ci;
+        EXPECT_LE(color.b, 1.0F) << ci;
+    }
+}
+
+TEST(ColorIndexToRgb, TheSunsOwnColorIndexLandsInTheYellowWhiteRange) {
+    // Sol's color index in our own committed catalog is 0.656 (see LoadStarCatalog's real-data
+    // test). Not an exact target -- there is no single "correct" RGB for this -- just a sanity
+    // check that it falls where the yellow-white anchors put it: bright, and warmer than pure
+    // white, cooler than orange.
+    const core::Rgb sol = core::ColorIndexToRgb(0.656);
+    EXPECT_GT(sol.r, 0.99F);
+    EXPECT_LT(sol.g, 1.0F);
+    EXPECT_GT(sol.g, 0.85F);
+    EXPECT_LT(sol.b, sol.g);
+}
+
 } // namespace
