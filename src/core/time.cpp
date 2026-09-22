@@ -58,4 +58,10 @@ double GreenwichMeanSiderealTime(double julianDate) {
     return radians < 0.0 ? radians + 2.0 * std::numbers::pi : radians;
 }
 
+double LocalSiderealTime(double julianDate, double observerLonRad) {
+    constexpr double kTwoPi = 2.0 * std::numbers::pi;
+    const double lst = std::fmod(GreenwichMeanSiderealTime(julianDate) + observerLonRad, kTwoPi);
+    return lst < 0.0 ? lst + kTwoPi : lst;
+}
+
 } // namespace core

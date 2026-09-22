@@ -131,4 +131,48 @@ TEST(TimePointFromJulianDate, IsTheInverseOfJulianDateFromTimePoint) {
     }
 }
 
+double Radians(double degrees) {
+    return degrees * std::numbers::pi / 180.0;
+}
+
+TEST(LocalSiderealTime, AtZeroLongitudeEqualsGreenwichMeanSiderealTime) {
+    const double jd = core::JulianDate({1987, 4, 10});
+    EXPECT_NEAR(core::LocalSiderealTime(jd, 0.0), core::GreenwichMeanSiderealTime(jd), 1e-12);
+}
+
+// Reference values computed independently in Python from the same GMST formula (Meeus's 1987
+// April 10, 0h UT example: GMST = 197.69319511274807 degrees) plus the observer's longitude,
+// not from this code's own output.
+TEST(LocalSiderealTime, MatchesIndependentlyComputedValuesAtSeveralLongitudes) {
+    const double jd = core::JulianDate({1987, 4, 10});
+    struct Case {
+        double lonDeg;
+        double expectedRad;
+    };
+    const Case cases[] = {
+        {45.0, 4.235795326902465},    {-74.006, 2.1587487972740926}, {179.0, 0.2913512173952799},
+        {-179.0, 0.3262578024351665}, {350.0, 3.2758642383055836},
+    };
+    for (const Case& c : cases) {
+        SCOPED_TRACE(c.lonDeg);
+        EXPECT_NEAR(core::LocalSiderealTime(jd, Radians(c.lonDeg)), c.expectedRad, 1e-9);
+    }
+}
+
+TEST(LocalSiderealTime, IsAlwaysWithinZeroToTwoPi) {
+    const double jd = core::JulianDate({2000, 6, 15, 12, 0, 0.0});
+    for (double lonDeg = -720.0; lonDeg <= 720.0; lonDeg += 53.0) {
+        const double lst = core::LocalSiderealTime(jd, Radians(lonDeg));
+        EXPECT_GE(lst, 0.0) << lonDeg;
+        EXPECT_LT(lst, kTwoPi) << lonDeg;
+    }
+}
+
+TEST(LocalSiderealTime, IncreasesWithEasternLongitude) {
+    const double jd = core::JulianDate({2000, 6, 15, 12, 0, 0.0});
+    const double lstWest = core::LocalSiderealTime(jd, Radians(-30.0));
+    const double lstEast = core::LocalSiderealTime(jd, Radians(30.0));
+    EXPECT_NEAR(lstEast - lstWest, Radians(60.0), 1e-9);
+}
+
 } // namespace

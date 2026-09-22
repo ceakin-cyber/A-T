@@ -30,4 +30,10 @@ std::chrono::system_clock::time_point TimePointFromJulianDate(double julianDate)
 // UT1 is taken to be UTC; the two differ by less than 0.9 s.
 double GreenwichMeanSiderealTime(double julianDate);
 
+// Local mean sidereal time in radians, in [0, 2*pi): Greenwich mean sidereal time plus the
+// observer's longitude (radians, positive east). This is what the equatorial-to-horizontal
+// transform for the star map needs; GreenwichMeanSiderealTime alone is only correct at 0
+// longitude.
+double LocalSiderealTime(double julianDate, double observerLonRad);
+
 } // namespace core
