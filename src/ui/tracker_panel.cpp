@@ -47,7 +47,7 @@ void DrawTrackerPanel(const app::TrackedSatellite* satellite,
         if (satellite == nullptr) {
             PlaceholderText("NO DATA");
         } else if (ImGui::BeginTable("##fields", 2, ImGuiTableFlags_SizingFixedFit)) {
-            ImGui::TableSetupColumn("label", ImGuiTableColumnFlags_WidthFixed, 110.0F);
+            ImGui::TableSetupColumn("label", ImGuiTableColumnFlags_WidthFixed, kLabelColumnWidth);
             ImGui::TableSetupColumn("value", ImGuiTableColumnFlags_WidthFixed, 180.0F);
 
             LabelValueRow("SATELLITE", satellite->tle.name);
