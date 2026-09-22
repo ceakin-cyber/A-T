@@ -27,7 +27,7 @@ void DrawPassPanel(const app::TrackedSatellite* satellite, const std::optional<c
         if (satellite == nullptr) {
             PlaceholderText("NO DATA");
         } else if (ImGui::BeginTable("##pass", 2, ImGuiTableFlags_SizingFixedFit)) {
-            ImGui::TableSetupColumn("label", ImGuiTableColumnFlags_WidthFixed, 110.0F);
+            ImGui::TableSetupColumn("label", ImGuiTableColumnFlags_WidthFixed, kLabelColumnWidth);
             ImGui::TableSetupColumn("value", ImGuiTableColumnFlags_WidthFixed, 230.0F);
 
             LabelValueRow("SITE", app::FormatLatitude(observer.latitude) + "  " +

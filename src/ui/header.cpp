@@ -27,7 +27,9 @@ float DrawHeaderBar(const app::TrackedSatellite* satellite) {
             ImGui::TextUnformatted("ONLINE");
 
             ImGui::SameLine();
-            ImGui::TextDisabled("   MODE:");
+            ImGui::TextDisabled("|");
+            ImGui::SameLine();
+            ImGui::TextDisabled("MODE:");
             ImGui::SameLine();
             const std::string mode = app::FormatNodeMode(satellite->source);
             if (satellite->source == net::TleSource::StaleCache) {
