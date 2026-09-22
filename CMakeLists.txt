@@ -77,7 +77,7 @@ target_include_directories(net PUBLIC src)
 target_link_libraries(net PRIVATE cpr::cpr)
 
 # Glue between the network layer and the astronomy code.
-add_library(app STATIC src/app/event_log.cpp src/app/format.cpp src/app/pass_planner.cpp src/app/satellite_position.cpp src/app/tle_age.cpp src/app/tracked_satellite.cpp)
+add_library(app STATIC src/app/config.cpp src/app/event_log.cpp src/app/format.cpp src/app/pass_planner.cpp src/app/satellite_position.cpp src/app/tle_age.cpp src/app/tracked_satellite.cpp)
 target_include_directories(app PUBLIC src)
 target_link_libraries(app PUBLIC core net)
 
@@ -97,7 +97,7 @@ add_custom_target(copy_assets ALL
 add_dependencies(a-t copy_assets)
 
 enable_testing()
-add_executable(tests tests/event_log_test.cpp tests/pass_planner_test.cpp tests/passes_test.cpp tests/observer_test.cpp tests/format_test.cpp tests/tle_age_test.cpp tests/satellite_position_test.cpp tests/frames_test.cpp tests/geodetic_test.cpp tests/kepler_test.cpp tests/sgp4_init_test.cpp tests/sgp4_propagate_test.cpp tests/sgp4_secular_test.cpp tests/time_test.cpp tests/tle_test.cpp tests/topocentric_test.cpp tests/tracked_satellite_test.cpp tests/tle_cache_test.cpp tests/tle_source_test.cpp)
+add_executable(tests tests/config_test.cpp tests/event_log_test.cpp tests/pass_planner_test.cpp tests/passes_test.cpp tests/observer_test.cpp tests/format_test.cpp tests/tle_age_test.cpp tests/satellite_position_test.cpp tests/frames_test.cpp tests/geodetic_test.cpp tests/kepler_test.cpp tests/sgp4_init_test.cpp tests/sgp4_propagate_test.cpp tests/sgp4_secular_test.cpp tests/time_test.cpp tests/tle_test.cpp tests/topocentric_test.cpp tests/tracked_satellite_test.cpp tests/tle_cache_test.cpp tests/tle_source_test.cpp)
 target_link_libraries(tests PRIVATE app core net GTest::gtest_main)
 include(GoogleTest)
 gtest_discover_tests(tests)
