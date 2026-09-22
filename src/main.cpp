@@ -1,9 +1,5 @@
 #include "app/config.h"
-#include "app/event_log.h"
-#include "app/pass_planner.h"
-#include "app/satellite_position.h"
-#include "app/tracked_satellite.h"
-#include "core/time.h"
+#include "app/satellite_roster.h"
 #include "ui/bloom_chain.h"
 #include "ui/crt_tuning_panel.h"
 #include "ui/dockspace.h"
@@ -14,6 +10,7 @@
 #include "ui/screen_pass.h"
 #include "ui/style.h"
 #include "ui/tracker_panel.h"
+#include "ui/watchlist_panel.h"
 
 #include <GLFW/glfw3.h>
 #include <chrono>
@@ -62,17 +59,22 @@ int main(int /*argc*/, char** argv) {
 
     const app::Config config = app::LoadConfig(app::DefaultConfigDir() / "config.txt");
 
-    // Only the first watchlist entry is tracked today. If this fails (offline with no cache) the
-    // app still runs, just without a satellite.
-    const std::optional<app::TrackedSatellite> satellite =
-        app::LoadSatellite(config.watchlist.front().noradId);
-    if (satellite) {
-        std::cout << "Tracking " << satellite->tle.name << " [" << satellite->tle.catalogNumber
-                  << "], TLE epoch " << satellite->tle.epochYear << " day "
-                  << satellite->tle.epochDay << ", from " << net::ToString(satellite->source)
-                  << '\n';
-    } else {
-        std::cerr << "No satellite to track\n";
+    // Every watchlist entry is loaded and kept live; the SATELLITES panel selects which one the
+    // other panels show. If an entry fails to load (offline with no cache) the app still runs,
+    // with that row marked offline.
+    app::SatelliteRoster roster(config.watchlist, config.observer);
+    for (std::size_t i = 0; i < roster.Size(); ++i) {
+        const app::WatchedSatellite& watched = roster.At(i);
+        if (watched.satellite) {
+            std::cout << "Tracking " << watched.satellite->tle.name << " ["
+                      << watched.satellite->tle.catalogNumber << "], TLE epoch "
+                      << watched.satellite->tle.epochYear << " day "
+                      << watched.satellite->tle.epochDay << ", from "
+                      << net::ToString(watched.satellite->source) << '\n';
+        } else {
+            std::cerr << "No data for [" << watched.entry.noradId << "] " << watched.entry.name
+                      << '\n';
+        }
     }
 
     IMGUI_CHECKVERSION();
@@ -108,26 +110,10 @@ int main(int /*argc*/, char** argv) {
         std::cerr << "Shader pass unavailable, drawing without post-processing\n";
     }
 
-    std::optional<app::PassPlanner> planner;
-    if (satellite) {
-        planner.emplace(satellite->model, config.observer);
-    }
-    app::EventLog eventLog;
-
     while (!glfwWindowShouldClose(window)) {
         const net::Clock::time_point now = std::chrono::system_clock::now();
-        std::optional<app::SatellitePosition> position;
-        std::optional<core::Pass> nextPass;
-        if (satellite) {
-            position = app::ComputePosition(*satellite, now);
-            nextPass = planner->Next(now);
-
-            // The planner always returns a pass whose set time is still ahead; it is the pass in
-            // progress once "now" has reached its rise time, and the upcoming one otherwise.
-            const bool aboveHorizon =
-                nextPass.has_value() && now >= core::TimePointFromJulianDate(nextPass->riseJd);
-            eventLog.LogVisibilityChange(now, aboveHorizon);
-        }
+        roster.Update(now);
+        const app::WatchedSatellite& selected = roster.Selected();
 
         int width = 0;
         int height = 0;
@@ -136,17 +122,19 @@ int main(int /*argc*/, char** argv) {
         ImGui_ImplOpenGL3_NewFrame();
         ImGui_ImplGlfw_NewFrame();
         ImGui::NewFrame();
-        const float headerHeight = ui::DrawHeaderBar(satellite ? &*satellite : nullptr);
+        const app::TrackedSatellite* selectedSatellite =
+            selected.satellite ? &*selected.satellite : nullptr;
+        const float headerHeight = ui::DrawHeaderBar(selectedSatellite);
         ui::DrawDockSpace(headerHeight);
 
-        ui::DrawTrackerPanel(satellite ? &*satellite : nullptr, position, now, headerHeight);
+        ui::DrawWatchlistPanel(roster);
+        ui::DrawTrackerPanel(selectedSatellite, selected.position, now, headerHeight);
         if (ImGui::IsKeyPressed(ImGuiKey_F2, false)) {
             tuningOpen = !tuningOpen;
         }
         ui::DrawCrtTuningPanel(crtSettings, tuningOpen, headerHeight);
-        ui::DrawPassPanel(satellite ? &*satellite : nullptr, nextPass, config.observer, now,
-                          headerHeight);
-        ui::DrawEventLogPanel(eventLog);
+        ui::DrawPassPanel(selectedSatellite, selected.nextPass, config.observer, now, headerHeight);
+        ui::DrawEventLogPanel(selected.eventLog);
         ImGui::Render();
 
         // A minimised window has no pixels to draw into; skip drawing until it comes back.
