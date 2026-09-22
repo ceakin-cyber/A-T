@@ -267,4 +267,62 @@ TEST(VisibleStars, ThePositionMatchesCallingTheTransformDirectly) {
     EXPECT_DOUBLE_EQ(visible[0].position.azimuthRad, expected.azimuthRad);
 }
 
+TEST(MagnitudeToPointStyle, TheBrightestStyledMagnitudeGivesTheLargestFullestStyle) {
+    const auto style = core::MagnitudeToPointStyle(core::kBrightestStyledMagnitude);
+    EXPECT_FLOAT_EQ(style.radiusPx, 3.0F);
+    EXPECT_FLOAT_EQ(style.brightness, 1.0F);
+}
+
+TEST(MagnitudeToPointStyle, TheFaintestStyledMagnitudeGivesTheSmallestDimmestStyle) {
+    const auto style = core::MagnitudeToPointStyle(core::kFaintestStyledMagnitude);
+    EXPECT_FLOAT_EQ(style.radiusPx, 0.5F);
+    EXPECT_FLOAT_EQ(style.brightness, 0.3F);
+}
+
+TEST(MagnitudeToPointStyle, TheMidpointGivesTheMidpointStyle) {
+    const double midMag = (core::kBrightestStyledMagnitude + core::kFaintestStyledMagnitude) / 2.0;
+    const auto style = core::MagnitudeToPointStyle(midMag);
+    EXPECT_NEAR(style.radiusPx, 1.75, 1e-6);
+    EXPECT_NEAR(style.brightness, 0.65, 1e-6);
+}
+
+TEST(MagnitudeToPointStyle, BrighterThanTheBrightestEndpointClampsToIt) {
+    // Sol, magnitude -26.7 in this app's own catalog: far brighter than any real night-sky star,
+    // and must not produce an oversized or out-of-range point.
+    const auto style = core::MagnitudeToPointStyle(-26.7);
+    EXPECT_FLOAT_EQ(style.radiusPx, 3.0F);
+    EXPECT_FLOAT_EQ(style.brightness, 1.0F);
+}
+
+TEST(MagnitudeToPointStyle, DimmerThanTheFaintestEndpointClampsToIt) {
+    const auto style = core::MagnitudeToPointStyle(9.0);
+    EXPECT_FLOAT_EQ(style.radiusPx, 0.5F);
+    EXPECT_FLOAT_EQ(style.brightness, 0.3F);
+}
+
+TEST(MagnitudeToPointStyle, RadiusAndBrightnessDecreaseMonotonicallyAsMagnitudeIncreases) {
+    float previousRadius = 999.0F;
+    float previousBrightness = 999.0F;
+    for (double mag = core::kBrightestStyledMagnitude; mag <= core::kFaintestStyledMagnitude;
+         mag += 0.25) {
+        const auto style = core::MagnitudeToPointStyle(mag);
+        EXPECT_LE(style.radiusPx, previousRadius) << mag;
+        EXPECT_LE(style.brightness, previousBrightness) << mag;
+        previousRadius = style.radiusPx;
+        previousBrightness = style.brightness;
+    }
+}
+
+TEST(MagnitudeToPointStyle, SiriusIsNearTheBrightEndAndTheCutoffIsAtTheDimEnd) {
+    // Sirius, the brightest real star: -1.46. Should sit close to (but not necessarily exactly
+    // at) the brightest style, since it is a touch dimmer than kBrightestStyledMagnitude (-1.5).
+    const auto sirius = core::MagnitudeToPointStyle(-1.46);
+    EXPECT_GT(sirius.radiusPx, 2.9F);
+    EXPECT_GT(sirius.brightness, 0.99F);
+
+    // A star right at the catalog's own faint cutoff.
+    const auto atCutoff = core::MagnitudeToPointStyle(6.0);
+    EXPECT_FLOAT_EQ(atCutoff.radiusPx, 0.5F);
+}
+
 } // namespace

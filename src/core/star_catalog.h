@@ -39,4 +39,19 @@ std::vector<Star> LoadStarCatalog(const std::filesystem::path& path);
 std::vector<VisibleStar> VisibleStars(const std::vector<Star>& stars, double observerLatRad,
                                       double lstRad);
 
+// How a star should be drawn: its point radius in pixels, and a 0-1 brightness multiplier on
+// its draw color. A magnitude of kBrightestStyledMagnitude or brighter (numerically smaller,
+// even negative) gives the largest, fullest-brightness style; kFaintestStyledMagnitude or
+// dimmer gives the smallest, dimmest style. Magnitude outside that range is clamped to the
+// nearer endpoint, so an unusually bright or faint object still gets a sensible, bounded style.
+struct StarPointStyle {
+    float radiusPx = 1.0F;
+    float brightness = 1.0F;
+};
+
+inline constexpr double kBrightestStyledMagnitude = -1.5; // comfortably covers Sirius, -1.46
+inline constexpr double kFaintestStyledMagnitude = 6.0;   // matches the catalog's own cutoff
+
+StarPointStyle MagnitudeToPointStyle(double magnitude);
+
 } // namespace core
