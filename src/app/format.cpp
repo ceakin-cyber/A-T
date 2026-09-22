@@ -81,4 +81,16 @@ std::string FormatCountdown(std::chrono::duration<double> duration) {
     return buffer;
 }
 
+std::string FormatNodeMode(net::TleSource source) {
+    switch (source) {
+    case net::TleSource::Network:
+        return "LIVE";
+    case net::TleSource::FreshCache:
+        return "CACHED";
+    case net::TleSource::StaleCache:
+        return "LOW-VISIBILITY";
+    }
+    return "UNKNOWN";
+}
+
 } // namespace app

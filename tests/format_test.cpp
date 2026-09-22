@@ -109,4 +109,10 @@ TEST(FormatCountdown, AcceptsFractionalSeconds) {
     EXPECT_EQ(app::FormatCountdown(std::chrono::duration<double>(59.9)), "59S");
 }
 
+TEST(FormatNodeMode, NamesEachTleSource) {
+    EXPECT_EQ(app::FormatNodeMode(net::TleSource::Network), "LIVE");
+    EXPECT_EQ(app::FormatNodeMode(net::TleSource::FreshCache), "CACHED");
+    EXPECT_EQ(app::FormatNodeMode(net::TleSource::StaleCache), "LOW-VISIBILITY");
+}
+
 } // namespace

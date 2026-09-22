@@ -1,5 +1,7 @@
 #pragma once
 
+#include "net/tle_source.h"
+
 #include <chrono>
 #include <string>
 
@@ -22,5 +24,10 @@ std::string FormatUtcTime(std::chrono::system_clock::time_point time);
 
 // Time remaining or a pass length: "45S", "12M 05S", "1H 23M" or "1D 3H". Negative shows as "0S".
 std::string FormatCountdown(std::chrono::duration<double> duration);
+
+// The header bar's MODE text for where the current TLE came from: "LIVE" for a fresh network
+// fetch, "CACHED" for a fresh cache hit, or "LOW-VISIBILITY" once the app is running on a stale
+// cache after a failed fetch.
+std::string FormatNodeMode(net::TleSource source);
 
 } // namespace app
