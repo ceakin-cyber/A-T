@@ -1,10 +1,13 @@
+#include "app/event_log.h"
 #include "app/observer.h"
 #include "app/pass_planner.h"
 #include "app/satellite_position.h"
 #include "app/tracked_satellite.h"
+#include "core/time.h"
 #include "ui/bloom_chain.h"
 #include "ui/crt_tuning_panel.h"
 #include "ui/dockspace.h"
+#include "ui/event_log_panel.h"
 #include "ui/framebuffer.h"
 #include "ui/header.h"
 #include "ui/pass_panel.h"
@@ -105,6 +108,7 @@ int main(int /*argc*/, char** argv) {
     if (satellite) {
         planner.emplace(satellite->model, app::kObserver);
     }
+    app::EventLog eventLog;
 
     while (!glfwWindowShouldClose(window)) {
         const net::Clock::time_point now = std::chrono::system_clock::now();
@@ -113,6 +117,12 @@ int main(int /*argc*/, char** argv) {
         if (satellite) {
             position = app::ComputePosition(*satellite, now);
             nextPass = planner->Next(now);
+
+            // The planner always returns a pass whose set time is still ahead; it is the pass in
+            // progress once "now" has reached its rise time, and the upcoming one otherwise.
+            const bool aboveHorizon =
+                nextPass.has_value() && now >= core::TimePointFromJulianDate(nextPass->riseJd);
+            eventLog.LogVisibilityChange(now, aboveHorizon);
         }
 
         int width = 0;
@@ -132,6 +142,7 @@ int main(int /*argc*/, char** argv) {
         ui::DrawCrtTuningPanel(crtSettings, tuningOpen, headerHeight);
         ui::DrawPassPanel(satellite ? &*satellite : nullptr, nextPass, app::kObserver, now,
                           headerHeight);
+        ui::DrawEventLogPanel(eventLog);
         ImGui::Render();
 
         // A minimised window has no pixels to draw into; skip drawing until it comes back.
