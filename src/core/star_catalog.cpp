@@ -168,4 +168,21 @@ std::vector<VisibleStar> VisibleStars(const std::vector<Star>& stars, double obs
     return visible;
 }
 
+StarPointStyle MagnitudeToPointStyle(double magnitude) {
+    constexpr float kMinRadiusPx = 0.5F;
+    constexpr float kMaxRadiusPx = 3.0F;
+    constexpr float kMinBrightness = 0.3F;
+    constexpr float kMaxBrightness = 1.0F;
+
+    // 0 at the faintest styled magnitude, 1 at the brightest; clamped outside that range.
+    const double span = kFaintestStyledMagnitude - kBrightestStyledMagnitude;
+    double t = (kFaintestStyledMagnitude - magnitude) / span;
+    t = std::clamp(t, 0.0, 1.0);
+
+    StarPointStyle style;
+    style.radiusPx = kMinRadiusPx + static_cast<float>(t) * (kMaxRadiusPx - kMinRadiusPx);
+    style.brightness = kMinBrightness + static_cast<float>(t) * (kMaxBrightness - kMinBrightness);
+    return style;
+}
+
 } // namespace core
