@@ -72,7 +72,7 @@ add_library(core STATIC src/core/celestial.cpp src/core/constellation.cpp src/co
 target_include_directories(core PUBLIC src)
 
 # Network access and the on-disk TLE cache.
-add_library(net STATIC src/net/tle_fetch.cpp src/net/tle_cache.cpp src/net/tle_source.cpp)
+add_library(net STATIC src/net/kp_index_fetch.cpp src/net/tle_fetch.cpp src/net/tle_cache.cpp src/net/tle_source.cpp)
 target_include_directories(net PUBLIC src)
 target_link_libraries(net PRIVATE cpr::cpr)
 
