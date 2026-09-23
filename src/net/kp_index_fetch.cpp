@@ -1,6 +1,7 @@
 #include "net/kp_index_fetch.h"
 
 #include <cctype>
+#include <charconv>
 #include <cpr/cpr.h>
 #include <iostream>
 #include <string_view>
@@ -41,6 +42,39 @@ std::optional<std::string> FetchKpIndex() {
         return std::nullopt;
     }
     return response.text;
+}
+
+std::optional<double> ParseMostRecentKp(const std::string& json) {
+    // The most recent reading is the last object in the array; isolating it first (rather than
+    // just finding the last "Kp" key in the whole text) keeps this correct even if some earlier
+    // object happened to be malformed or missing its own Kp field.
+    const std::size_t lastObjectStart = json.rfind('{');
+    if (lastObjectStart == std::string::npos) {
+        return std::nullopt;
+    }
+
+    const std::size_t keyPos = json.find("\"Kp\"", lastObjectStart);
+    if (keyPos == std::string::npos) {
+        return std::nullopt;
+    }
+    const std::size_t colonPos = json.find(':', keyPos + 4);
+    if (colonPos == std::string::npos) {
+        return std::nullopt;
+    }
+
+    std::size_t valueStart = colonPos + 1;
+    while (valueStart < json.size() &&
+          std::isspace(static_cast<unsigned char>(json[valueStart]))) {
+        ++valueStart;
+    }
+
+    double value = 0.0;
+    const auto [end, ec] =
+        std::from_chars(json.data() + valueStart, json.data() + json.size(), value);
+    if (ec != std::errc() || end == json.data() + valueStart) {
+        return std::nullopt;
+    }
+    return value;
 }
 
 } // namespace net
