@@ -108,6 +108,7 @@ int main(int /*argc*/, char** argv) {
     ui::CrtSettings crtSettings;
     bool tuningOpen = false; // F2 toggles the CRT tuning panel
     std::cout << "Press F2 to tune the CRT effect\n";
+    bool showConstellationLines = true; // the STAR MAP panel's own checkbox toggles this
     ui::BloomChain bloomChain;
     const bool haveScreenPass = screenPass.Load(exeDir / "assets" / "shaders") &&
                                 bloomChain.Load(exeDir / "assets" / "shaders");
@@ -157,7 +158,7 @@ int main(int /*argc*/, char** argv) {
         ui::DrawCrtTuningPanel(crtSettings, tuningOpen, headerHeight);
         ui::DrawPassPanel(selectedSatellite, selected.nextPass, config.observer, now, headerHeight);
         ui::DrawGroundTrackPanel(&selected, config.observer);
-        ui::DrawStarMapPanel(visibleStars, visibleConstellationLines);
+        ui::DrawStarMapPanel(visibleStars, visibleConstellationLines, showConstellationLines);
         ui::DrawEventLogPanel(selected.eventLog);
         ImGui::Render();
 

@@ -11,7 +11,11 @@ namespace ui {
 // grid (azimuth 0-360 left to right, altitude 0-90 bottom to top), sized and colored by
 // magnitude and B-V color index, with constellation stick-figure lines drawn beneath them. This
 // is a placeholder projection -- no dome/stereographic projection yet, a separate, later issue.
+//
+// A checkbox at the top of the panel toggles the constellation lines on and off;
+// showConstellationLines holds that state across frames and is not persisted between runs.
 void DrawStarMapPanel(const std::vector<core::VisibleStar>& visibleStars,
-                      const std::vector<core::VisibleConstellationLine>& constellationLines);
+                      const std::vector<core::VisibleConstellationLine>& constellationLines,
+                      bool& showConstellationLines);
 
 } // namespace ui
