@@ -152,6 +152,23 @@ int main(int /*argc*/, char** argv) {
                                         // crowd a small panel with no label collision handling
     app::StarMapTime starMapTime; // follows the real clock until the STAR MAP panel's own time
                                   // controls detach it; never affects any other panel
+
+    // The LUNAR ALIGNMENT panel's snapshot: recomputed here at startup and again whenever the
+    // panel's own REFRESH button is clicked below, never on every frame -- a deliberate manual-
+    // refresh design, not a performance one (a live recompute would be cheap; see core/lunar.h).
+    double lunarJulianDate = 0.0;
+    core::LunarPhase lunarPhase;
+    std::optional<double> nextNewMoonJd;
+    std::optional<double> nextFullMoonJd;
+    net::Clock::time_point lunarRefreshedAt{};
+    const auto refreshLunarSnapshot = [&](net::Clock::time_point at) {
+        lunarJulianDate = core::JulianDateFromTimePoint(at);
+        lunarPhase = core::LunarPhaseAt(lunarJulianDate);
+        nextNewMoonJd = core::NextNewMoon(lunarJulianDate);
+        nextFullMoonJd = core::NextFullMoon(lunarJulianDate);
+        lunarRefreshedAt = at;
+    };
+    refreshLunarSnapshot(startupTime); // an initial snapshot, so the panel isn't empty at launch
     ui::BloomChain bloomChain;
     const bool haveScreenPass = screenPass.Load(exeDir / "assets" / "shaders") &&
                                 bloomChain.Load(exeDir / "assets" / "shaders");
@@ -209,15 +226,6 @@ int main(int /*argc*/, char** argv) {
         ImGui_ImplGlfw_NewFrame();
         ImGui::NewFrame();
 
-        // The Moon's phase for right now -- always the real clock, unlike the star map's own
-        // time below, so it is not affected by that panel's time-travel controls. Cheap enough
-        // (a handful of trig calls, even with NextNewMoon/NextFullMoon's own search) to just
-        // recompute every frame, the same way the star map's own astronomy is below.
-        const double lunarJulianDate = core::JulianDateFromTimePoint(now);
-        const core::LunarPhase lunarPhase = core::LunarPhaseAt(lunarJulianDate);
-        const std::optional<double> nextNewMoonJd = core::NextNewMoon(lunarJulianDate);
-        const std::optional<double> nextFullMoonJd = core::NextFullMoon(lunarJulianDate);
-
         // The star map's own clock: normally `now`, but the panel's time controls (drawn below)
         // can detach and move it, which is why this has to run after NewFrame -- it needs this
         // frame's real elapsed time (DeltaTime) to advance playback.
@@ -249,7 +257,10 @@ int main(int /*argc*/, char** argv) {
                             showStarLabels, starMapTime, now);
         ui::DrawEventLogPanel(selected.eventLog);
         ui::DrawIncomingTransmissionPanel(transmissionLog, now);
-        ui::DrawLunarAlignmentPanel(lunarPhase, lunarJulianDate, nextNewMoonJd, nextFullMoonJd);
+        if (ui::DrawLunarAlignmentPanel(lunarPhase, lunarJulianDate, nextNewMoonJd, nextFullMoonJd,
+                                        lunarRefreshedAt)) {
+            refreshLunarSnapshot(now);
+        }
         ImGui::Render();
 
         // A minimised window has no pixels to draw into; skip drawing until it comes back.
