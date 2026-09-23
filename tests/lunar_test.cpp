@@ -117,4 +117,92 @@ TEST(LunarPhaseAt, NewMoonAndFullMoonAreOppositeInIlluminatedFraction) {
     EXPECT_NEAR(core::LunarPhaseAt(fullMoonJd).illuminatedFraction, 1.0, 0.01);
 }
 
+// Reference next-new-moon and next-full-moon times below are from the independent `pyephem`
+// library, computed once offline for each starting Julian date. The tolerance (0.02 days, about
+// half an hour) is tighter than LunarPhaseAt's own reference tests above: unlike ageDays,
+// searching for the illuminatedFraction extremum uses its periodic correction terms, so it tracks
+// the true event much more closely (observed within about 20 minutes of pyephem across these
+// cases).
+struct NextEventCase {
+    const char* label;
+    double fromJulianDate;
+    double nextNewMoonJd;
+    double nextFullMoonJd;
+};
+
+constexpr NextEventCase kNextEventCases[] = {
+    {"2000-01-01", 2451544.5, 2451550.25948, 2451564.69476},
+    {"2026-01-01", 2461041.5, 2461059.32771, 2461043.91864},
+    {"2026-09-22 (this project's present)", 2461305.5, 2461324.15973, 2461310.20067},
+    {"a few hours later, 2026-09-23 12:00", 2461306.0, 2461324.15973, 2461310.20067},
+    {"2020-06-21 12:00, right after a known new moon", 2459022.0, 2459051.23120, 2459035.69749},
+};
+
+TEST(NextNewMoon, MatchesTheIndependentPyephemReference) {
+    for (const NextEventCase& c : kNextEventCases) {
+        const std::optional<double> next = core::NextNewMoon(c.fromJulianDate);
+        ASSERT_TRUE(next.has_value()) << c.label;
+        EXPECT_NEAR(*next, c.nextNewMoonJd, 0.02) << c.label;
+    }
+}
+
+TEST(NextFullMoon, MatchesTheIndependentPyephemReference) {
+    for (const NextEventCase& c : kNextEventCases) {
+        const std::optional<double> next = core::NextFullMoon(c.fromJulianDate);
+        ASSERT_TRUE(next.has_value()) << c.label;
+        EXPECT_NEAR(*next, c.nextFullMoonJd, 0.02) << c.label;
+    }
+}
+
+TEST(NextNewMoon, IsStrictlyAfterTheStartingDate) {
+    for (const NextEventCase& c : kNextEventCases) {
+        const std::optional<double> next = core::NextNewMoon(c.fromJulianDate);
+        ASSERT_TRUE(next.has_value()) << c.label;
+        EXPECT_GT(*next, c.fromJulianDate) << c.label;
+    }
+}
+
+TEST(NextFullMoon, IsStrictlyAfterTheStartingDate) {
+    for (const NextEventCase& c : kNextEventCases) {
+        const std::optional<double> next = core::NextFullMoon(c.fromJulianDate);
+        ASSERT_TRUE(next.has_value()) << c.label;
+        EXPECT_GT(*next, c.fromJulianDate) << c.label;
+    }
+}
+
+TEST(NextNewMoon, LandsWithinAFewMinutesOfIlluminatedFractionZero) {
+    for (const NextEventCase& c : kNextEventCases) {
+        const std::optional<double> next = core::NextNewMoon(c.fromJulianDate);
+        ASSERT_TRUE(next.has_value()) << c.label;
+        EXPECT_NEAR(core::LunarPhaseAt(*next).illuminatedFraction, 0.0, 0.001) << c.label;
+    }
+}
+
+TEST(NextFullMoon, LandsWithinAFewMinutesOfIlluminatedFractionOne) {
+    for (const NextEventCase& c : kNextEventCases) {
+        const std::optional<double> next = core::NextFullMoon(c.fromJulianDate);
+        ASSERT_TRUE(next.has_value()) << c.label;
+        EXPECT_NEAR(core::LunarPhaseAt(*next).illuminatedFraction, 1.0, 0.001) << c.label;
+    }
+}
+
+TEST(NextNewMoon, TwoConsecutiveCallsAreAboutOneSynodicMonthApart) {
+    const std::optional<double> first = core::NextNewMoon(2451544.5);
+    ASSERT_TRUE(first.has_value());
+    const std::optional<double> second = core::NextNewMoon(*first + 1.0);
+    ASSERT_TRUE(second.has_value());
+    EXPECT_NEAR(*second - *first, core::SynodicMonthDays(), 0.5);
+}
+
+TEST(NextNewMoon, NulloptWhenMaxDaysIsTooShortToReachIt) {
+    // The next new moon from this starting point is about 6 days away (see the reference table
+    // above); a maxDays budget far shorter than that must not find a wrong answer, or loop
+    // forever, just report nothing.
+    EXPECT_EQ(core::NextNewMoon(2451544.5, /*stepDays=*/1.0, /*maxDays=*/2.0), std::nullopt);
+}
+
+TEST(NextFullMoon, NulloptWhenMaxDaysIsTooShortToReachIt) {
+    EXPECT_EQ(core::NextFullMoon(2461305.5, /*stepDays=*/1.0, /*maxDays=*/2.0), std::nullopt);
+}
+
 } // namespace
