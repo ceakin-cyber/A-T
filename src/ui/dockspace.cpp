@@ -42,6 +42,7 @@ void DrawDockSpace(float headerHeight) {
         ImGui::DockBuilderSplitNode(top, ImGuiDir_Left, 0.5F, &left, &right);
         ImGui::DockBuilderDockWindow("ISS TRACKER", left);
         ImGui::DockBuilderDockWindow("SATELLITES", left);
+        ImGui::DockBuilderDockWindow("SYSTEM STATUS", left);
         ImGui::DockBuilderDockWindow("NEXT PASS", right);
         ImGui::DockBuilderDockWindow("GROUND TRACK", right);
         ImGui::DockBuilderDockWindow("STAR MAP", right);

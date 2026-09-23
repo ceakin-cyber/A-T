@@ -1,6 +1,7 @@
 #include "app/config.h"
 #include "app/satellite_roster.h"
 #include "app/star_map_time.h"
+#include "app/system_status.h"
 #include "core/constellation.h"
 #include "core/star_catalog.h"
 #include "core/time.h"
@@ -15,6 +16,7 @@
 #include "ui/screen_pass.h"
 #include "ui/star_map_panel.h"
 #include "ui/style.h"
+#include "ui/system_status_panel.h"
 #include "ui/tracker_panel.h"
 #include "ui/watchlist_panel.h"
 
@@ -69,6 +71,8 @@ int main(int /*argc*/, char** argv) {
     // other panels show. If an entry fails to load (offline with no cache) the app still runs,
     // with that row marked offline.
     app::SatelliteRoster roster(config.watchlist, config.observer);
+    std::vector<net::TleSource> loadedSources;
+    std::vector<net::Clock::time_point> fetchTimes;
     for (std::size_t i = 0; i < roster.Size(); ++i) {
         const app::WatchedSatellite& watched = roster.At(i);
         if (watched.satellite) {
@@ -77,11 +81,26 @@ int main(int /*argc*/, char** argv) {
                       << watched.satellite->tle.epochYear << " day "
                       << watched.satellite->tle.epochDay << ", from "
                       << net::ToString(watched.satellite->source) << '\n';
+            loadedSources.push_back(watched.satellite->source);
+            fetchTimes.push_back(watched.satellite->fetchedAt);
         } else {
             std::cerr << "No data for [" << watched.entry.noradId << "] " << watched.entry.name
                       << '\n';
         }
     }
+
+    // The station's own identity and health, for the SYSTEM STATUS panel. Computed once here,
+    // right after the roster above finishes loading: nothing in this app's current, synchronous
+    // startup changes any of this afterward (SatelliteRoster::Update never re-attempts a load
+    // that failed the first time).
+    app::SystemStatus systemStatus;
+    systemStatus.callsign = app::kCallsign;
+    systemStatus.nodeId = app::kNodeId;
+    systemStatus.state = app::SystemState(!loadedSources.empty());
+    systemStatus.mode = app::SystemMode(loadedSources);
+    systemStatus.lastSync = app::LastSync(fetchTimes).value_or(net::Clock::time_point{});
+    std::cout << "System status: " << systemStatus.state << ", mode " << systemStatus.mode
+              << '\n';
 
     IMGUI_CHECKVERSION();
     ImGui::CreateContext();
@@ -166,6 +185,7 @@ int main(int /*argc*/, char** argv) {
         ui::DrawDockSpace(headerHeight);
 
         ui::DrawWatchlistPanel(roster);
+        ui::DrawSystemStatusPanel(systemStatus, headerHeight);
         ui::DrawTrackerPanel(selectedSatellite, selected.position, now, headerHeight);
         if (ImGui::IsKeyPressed(ImGuiKey_F2, false)) {
             tuningOpen = !tuningOpen;
