@@ -1,5 +1,6 @@
 #include "app/config.h"
 #include "app/satellite_roster.h"
+#include "app/star_map_time.h"
 #include "core/constellation.h"
 #include "core/star_catalog.h"
 #include "core/time.h"
@@ -109,6 +110,8 @@ int main(int /*argc*/, char** argv) {
     bool tuningOpen = false; // F2 toggles the CRT tuning panel
     std::cout << "Press F2 to tune the CRT effect\n";
     bool showConstellationLines = true; // the STAR MAP panel's own checkbox toggles this
+    app::StarMapTime starMapTime; // follows the real clock until the STAR MAP panel's own time
+                                  // controls detach it; never affects any other panel
     ui::BloomChain bloomChain;
     const bool haveScreenPass = screenPass.Load(exeDir / "assets" / "shaders") &&
                                 bloomChain.Load(exeDir / "assets" / "shaders");
@@ -130,14 +133,6 @@ int main(int /*argc*/, char** argv) {
         roster.Update(now);
         const app::WatchedSatellite& selected = roster.Selected();
 
-        const double julianDate = core::JulianDateFromTimePoint(now);
-        const double lst = core::LocalSiderealTime(julianDate, config.observer.longitude);
-        const std::vector<core::VisibleStar> visibleStars =
-            core::VisibleStars(starCatalog, config.observer.latitude, lst);
-        const std::vector<core::VisibleConstellationLine> visibleConstellationLines =
-            core::VisibleConstellationLines(starCatalog, constellationLines,
-                                            config.observer.latitude, lst);
-
         int width = 0;
         int height = 0;
         glfwGetFramebufferSize(window, &width, &height);
@@ -145,6 +140,20 @@ int main(int /*argc*/, char** argv) {
         ImGui_ImplOpenGL3_NewFrame();
         ImGui_ImplGlfw_NewFrame();
         ImGui::NewFrame();
+
+        // The star map's own clock: normally `now`, but the panel's time controls (drawn below)
+        // can detach and move it, which is why this has to run after NewFrame -- it needs this
+        // frame's real elapsed time (DeltaTime) to advance playback.
+        app::Advance(starMapTime, now, ImGui::GetIO().DeltaTime);
+        const net::Clock::time_point starMapNow = app::Effective(starMapTime, now);
+        const double julianDate = core::JulianDateFromTimePoint(starMapNow);
+        const double lst = core::LocalSiderealTime(julianDate, config.observer.longitude);
+        const std::vector<core::VisibleStar> visibleStars =
+            core::VisibleStars(starCatalog, config.observer.latitude, lst);
+        const std::vector<core::VisibleConstellationLine> visibleConstellationLines =
+            core::VisibleConstellationLines(starCatalog, constellationLines,
+                                            config.observer.latitude, lst);
+
         const app::TrackedSatellite* selectedSatellite =
             selected.satellite ? &*selected.satellite : nullptr;
         const float headerHeight = ui::DrawHeaderBar(selectedSatellite);
@@ -158,7 +167,8 @@ int main(int /*argc*/, char** argv) {
         ui::DrawCrtTuningPanel(crtSettings, tuningOpen, headerHeight);
         ui::DrawPassPanel(selectedSatellite, selected.nextPass, config.observer, now, headerHeight);
         ui::DrawGroundTrackPanel(&selected, config.observer);
-        ui::DrawStarMapPanel(visibleStars, visibleConstellationLines, showConstellationLines);
+        ui::DrawStarMapPanel(visibleStars, visibleConstellationLines, showConstellationLines,
+                            starMapTime, now);
         ui::DrawEventLogPanel(selected.eventLog);
         ImGui::Render();
 
