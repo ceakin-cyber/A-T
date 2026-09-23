@@ -47,6 +47,7 @@ void DrawDockSpace(float headerHeight) {
         ImGui::DockBuilderDockWindow("GROUND TRACK", right);
         ImGui::DockBuilderDockWindow("STAR MAP", right);
         ImGui::DockBuilderDockWindow("EVENT LOG", bottom);
+        ImGui::DockBuilderDockWindow("INCOMING TRANSMISSION", bottom);
         ImGui::DockBuilderFinish(dockSpaceId);
     }
 

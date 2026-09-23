@@ -1,7 +1,9 @@
 #include "app/config.h"
+#include "app/event_log.h"
 #include "app/satellite_roster.h"
 #include "app/star_map_time.h"
 #include "app/system_status.h"
+#include "app/transmission_events.h"
 #include "core/constellation.h"
 #include "core/star_catalog.h"
 #include "core/time.h"
@@ -12,6 +14,7 @@
 #include "ui/framebuffer.h"
 #include "ui/ground_track_panel.h"
 #include "ui/header.h"
+#include "ui/incoming_transmission_panel.h"
 #include "ui/pass_panel.h"
 #include "ui/screen_pass.h"
 #include "ui/star_map_panel.h"
@@ -28,6 +31,7 @@
 #include <imgui_impl_glfw.h>
 #include <imgui_impl_opengl3.h>
 #include <iostream>
+#include <optional>
 
 int main(int /*argc*/, char** argv) {
     // Prefer X11: under WSLg the Wayland backend has no title bar or window buttons.
@@ -73,6 +77,12 @@ int main(int /*argc*/, char** argv) {
     app::SatelliteRoster roster(config.watchlist, config.observer);
     std::vector<net::TleSource> loadedSources;
     std::vector<net::Clock::time_point> fetchTimes;
+
+    // Real events from the app's own pipeline, across every watched satellite -- separate from
+    // each satellite's own EVENT LOG (signal acquired/lost). See ui/incoming_transmission_panel.h.
+    app::EventLog transmissionLog;
+    const net::Clock::time_point startupTime = std::chrono::system_clock::now();
+
     for (std::size_t i = 0; i < roster.Size(); ++i) {
         const app::WatchedSatellite& watched = roster.At(i);
         if (watched.satellite) {
@@ -83,6 +93,12 @@ int main(int /*argc*/, char** argv) {
                       << net::ToString(watched.satellite->source) << '\n';
             loadedSources.push_back(watched.satellite->source);
             fetchTimes.push_back(watched.satellite->fetchedAt);
+
+            // Both real: MakeSatellite (via the roster's loader) only reaches here once the TLE
+            // has actually been obtained (network or cache) and the SGP4 model built from it.
+            transmissionLog.Add(startupTime, "TLE FETCHED: " + watched.satellite->tle.name);
+            transmissionLog.Add(startupTime,
+                                "PROPAGATOR INITIALIZED: " + watched.satellite->tle.name);
         } else {
             std::cerr << "No data for [" << watched.entry.noradId << "] " << watched.entry.name
                       << '\n';
@@ -153,10 +169,25 @@ int main(int /*argc*/, char** argv) {
     // Built once and reused every frame, rather than re-indexing the whole catalog each time.
     const core::StarHipIndex starHipIndex(starCatalog);
 
+    // The most recently seen next-pass per watched satellite, to notice (via app::PassChanged)
+    // when PassPlanner has produced a genuinely new one, worth a "PASS COMPUTED" transmission
+    // event -- indexed alongside the roster itself, which never changes size after construction.
+    std::vector<std::optional<core::Pass>> lastLoggedPass(roster.Size());
+
     while (!glfwWindowShouldClose(window)) {
         const net::Clock::time_point now = std::chrono::system_clock::now();
         roster.Update(now);
         const app::WatchedSatellite& selected = roster.Selected();
+
+        for (std::size_t i = 0; i < roster.Size(); ++i) {
+            const app::WatchedSatellite& watched = roster.At(i);
+            if (app::PassChanged(lastLoggedPass[i], watched.nextPass)) {
+                lastLoggedPass[i] = watched.nextPass;
+                if (watched.nextPass && watched.satellite) {
+                    transmissionLog.Add(now, "PASS COMPUTED: " + watched.satellite->tle.name);
+                }
+            }
+        }
 
         int width = 0;
         int height = 0;
@@ -196,6 +227,7 @@ int main(int /*argc*/, char** argv) {
         ui::DrawStarMapPanel(visibleStars, visibleConstellationLines, showConstellationLines,
                             showStarLabels, starMapTime, now);
         ui::DrawEventLogPanel(selected.eventLog);
+        ui::DrawIncomingTransmissionPanel(transmissionLog);
         ImGui::Render();
 
         // A minimised window has no pixels to draw into; skip drawing until it comes back.
