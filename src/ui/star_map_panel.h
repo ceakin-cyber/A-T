@@ -19,8 +19,11 @@ namespace ui {
 // panel is currently showing (app::Effective(time, now)) -- this function only draws them and
 // the controls below; it does not recompute the sky itself.
 //
-// A checkbox at the top of the panel toggles the constellation lines on and off;
-// showConstellationLines holds that state across frames and is not persisted between runs.
+// Checkboxes at the top of the panel toggle the constellation lines, and the star labels, on and
+// off; showConstellationLines and showStarLabels hold that state across frames and are not
+// persisted between runs. A labeled star (see core::StarLabel) gets its label text drawn beside
+// its point, in the same dim phosphor green as the constellation lines, only while
+// showStarLabels is set.
 //
 // Below that, time controls let the sky be explored away from the present: jump buttons step
 // `time` by a fixed amount, a PLAY/PAUSE button and speed slider animate it, and a LIVE button
@@ -29,7 +32,7 @@ namespace ui {
 // `time` is not persisted between runs.
 void DrawStarMapPanel(const std::vector<core::VisibleStar>& visibleStars,
                       const std::vector<core::VisibleConstellationLine>& constellationLines,
-                      bool& showConstellationLines, app::StarMapTime& time,
+                      bool& showConstellationLines, bool& showStarLabels, app::StarMapTime& time,
                       std::chrono::system_clock::time_point now);
 
 } // namespace ui

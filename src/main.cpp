@@ -110,6 +110,9 @@ int main(int /*argc*/, char** argv) {
     bool tuningOpen = false; // F2 toggles the CRT tuning panel
     std::cout << "Press F2 to tune the CRT effect\n";
     bool showConstellationLines = true; // the STAR MAP panel's own checkbox toggles this
+    bool showStarLabels = false;        // ditto, for bright/named star labels; off by default,
+                                        // since even the brightest/best-known stars alone can
+                                        // crowd a small panel with no label collision handling
     app::StarMapTime starMapTime; // follows the real clock until the STAR MAP panel's own time
                                   // controls detach it; never affects any other panel
     ui::BloomChain bloomChain;
@@ -171,7 +174,7 @@ int main(int /*argc*/, char** argv) {
         ui::DrawPassPanel(selectedSatellite, selected.nextPass, config.observer, now, headerHeight);
         ui::DrawGroundTrackPanel(&selected, config.observer);
         ui::DrawStarMapPanel(visibleStars, visibleConstellationLines, showConstellationLines,
-                            starMapTime, now);
+                            showStarLabels, starMapTime, now);
         ui::DrawEventLogPanel(selected.eventLog);
         ImGui::Render();
 

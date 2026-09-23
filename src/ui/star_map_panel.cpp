@@ -69,7 +69,7 @@ void DrawTimeControls(app::StarMapTime& time, std::chrono::system_clock::time_po
 
 void DrawStarMapPanel(const std::vector<core::VisibleStar>& visibleStars,
                       const std::vector<core::VisibleConstellationLine>& constellationLines,
-                      bool& showConstellationLines, app::StarMapTime& time,
+                      bool& showConstellationLines, bool& showStarLabels, app::StarMapTime& time,
                       std::chrono::system_clock::time_point now) {
     if (!ImGui::Begin("STAR MAP")) {
         ImGui::End();
@@ -77,6 +77,8 @@ void DrawStarMapPanel(const std::vector<core::VisibleStar>& visibleStars,
     }
 
     ImGui::Checkbox("CONSTELLATION LINES", &showConstellationLines);
+    ImGui::SameLine();
+    ImGui::Checkbox("STAR LABELS", &showStarLabels);
     DrawTimeControls(time, now);
 
     const ImVec2 avail = ImGui::GetContentRegionAvail();
@@ -91,6 +93,14 @@ void DrawStarMapPanel(const std::vector<core::VisibleStar>& visibleStars,
 
     const ImU32 borderColor = ImGui::GetColorU32(ImGuiCol_Text, 0.6F);
     const ImU32 lineColor = ImGui::GetColorU32(ImGuiCol_Text, 0.25F);
+    const ImU32 labelColor = ImGui::GetColorU32(ImGuiCol_Text, 0.85F);
+
+    // Drawn well below the panel's own text size (there is no label collision handling here, so
+    // smaller text packs tighter and overlaps less where stars cluster).
+    ImFont* labelFont = ImGui::GetFont();
+    constexpr float kLabelFontSize = 11.0F;
+    const float labelLineHeight =
+        kLabelFontSize / labelFont->LegacySize * ImGui::GetTextLineHeight();
 
     drawList->AddRect(origin, {origin.x + size.x, origin.y + size.y}, borderColor);
 
@@ -111,6 +121,15 @@ void DrawStarMapPanel(const std::vector<core::VisibleStar>& visibleStars,
         // is a green terminal display, not a color photo of the sky.
         const ImU32 starColor = ImGui::GetColorU32(ImGuiCol_Text, pointStyle.brightness);
         drawList->AddCircleFilled(p, pointStyle.radiusPx, starColor);
+
+        if (showStarLabels) {
+            const std::string label = core::StarLabel(visible.star);
+            if (!label.empty()) {
+                const ImVec2 labelPos = {p.x + pointStyle.radiusPx + 3.0F,
+                                         p.y - 0.5F * labelLineHeight};
+                drawList->AddText(labelFont, kLabelFontSize, labelPos, labelColor, label.c_str());
+            }
+        }
     }
 
     ImGui::Dummy(size);
