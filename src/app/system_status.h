@@ -2,15 +2,17 @@
 
 #include "net/tle_cache.h"
 
+#include <optional>
 #include <string>
+#include <vector>
 
 namespace app {
 
 // The station's own identity and health, for the header's system status readout: who is running
 // it, which node it is, what mode it is operating in, its overall lifecycle state, and when its
-// data was last synchronized. callsign and nodeId have real (if hardcoded) values, and state has
-// a real starting value ("INITIALIZING", see SystemState below); mode and lastSync are still
-// plain placeholders, wired to reflect the app's actual behavior in the issues after this one.
+// data was last synchronized. callsign and nodeId have real (if hardcoded) values, and state and
+// lastSync have real starting values (see SystemState and LastSync below); mode is still a plain
+// placeholder, wired to reflect the app's actual behavior in the issue after this one.
 struct SystemStatus {
     std::string callsign;              // operator identity, e.g. an amateur radio callsign
     std::string nodeId;                // this station's own identifier
@@ -18,6 +20,7 @@ struct SystemStatus {
     std::string state = "INITIALIZING"; // lifecycle state; see SystemState
 
     // When this station's data (its tracked satellites' TLEs, at least) was last synchronized.
+    // The default, epoch, means "never" -- the same as an empty LastSync() result; see below.
     net::Clock::time_point lastSync{};
 };
 
@@ -37,5 +40,12 @@ inline constexpr const char* kNodeId = "NODE-01";
 // and the first call in this app's current, synchronous startup, but the field still models the
 // state honestly for whenever loading becomes asynchronous.
 std::string SystemState(bool anySatelliteLoaded);
+
+// The most recent successful data fetch, for SystemStatus::lastSync: the latest of the given
+// fetch times (each a loaded satellite's own TrackedSatellite::fetchedAt), or nullopt if
+// `fetchTimes` is empty -- the same case SystemState reports as "OFFLINE". The caller decides how
+// to fold that into SystemStatus::lastSync (its own default, epoch, is a reasonable "never").
+std::optional<net::Clock::time_point> LastSync(
+    const std::vector<net::Clock::time_point>& fetchTimes);
 
 } // namespace app
