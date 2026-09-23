@@ -92,7 +92,7 @@ std::vector<Star> ParseStarCatalog(const std::string& text) {
         columnIndex[header[i]] = i;
     }
 
-    static const char* const kRequiredColumns[] = {"id", "rarad", "decrad", "mag", "ci"};
+    static const char* const kRequiredColumns[] = {"id", "hip", "rarad", "decrad", "mag", "ci"};
     for (const char* column : kRequiredColumns) {
         if (columnIndex.find(column) == columnIndex.end()) {
             std::cerr << "Star catalog is missing the required column '" << column << "'\n";
@@ -100,11 +100,12 @@ std::vector<Star> ParseStarCatalog(const std::string& text) {
         }
     }
     const std::size_t idCol = columnIndex["id"];
+    const std::size_t hipCol = columnIndex["hip"];
     const std::size_t raCol = columnIndex["rarad"];
     const std::size_t decCol = columnIndex["decrad"];
     const std::size_t magCol = columnIndex["mag"];
     const std::size_t ciCol = columnIndex["ci"];
-    const std::size_t minColumns = 1 + std::max({idCol, raCol, decCol, magCol, ciCol});
+    const std::size_t minColumns = 1 + std::max({idCol, hipCol, raCol, decCol, magCol, ciCol});
 
     std::string line;
     int lineNumber = 1;
@@ -135,6 +136,7 @@ std::vector<Star> ParseStarCatalog(const std::string& text) {
 
         Star star;
         star.id = *id;
+        star.hip = ParseInt(fields[hipCol]).value_or(0);
         star.raRad = *ra;
         star.decRad = *dec;
         star.magnitude = *mag;
