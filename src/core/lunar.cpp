@@ -1,0 +1,65 @@
+#include "core/lunar.h"
+
+#include <cmath>
+#include <numbers>
+
+namespace core {
+
+namespace {
+
+constexpr double kDegToRad = std::numbers::pi / 180.0;
+
+// Mean elongation of the Moon from the Sun's own linear term, in degrees per Julian century
+// (Meeus 47.2): how fast the Moon pulls away from the Sun in ecliptic longitude, on average.
+// 360 degrees of that is exactly one synodic month.
+constexpr double kMeanElongationDegPerCentury = 445267.1114034;
+
+// Wraps degrees into [0, 360).
+double NormalizeDegrees(double degrees) {
+    double wrapped = std::fmod(degrees, 360.0);
+    if (wrapped < 0.0) {
+        wrapped += 360.0;
+    }
+    return wrapped;
+}
+
+} // namespace
+
+double SynodicMonthDays() {
+    return 360.0 * 36525.0 / kMeanElongationDegPerCentury;
+}
+
+LunarPhase LunarPhaseAt(double julianDate) {
+    const double t = (julianDate - 2451545.0) / 36525.0; // Julian centuries since J2000.0
+    const double t2 = t * t;
+    const double t3 = t2 * t;
+    const double t4 = t3 * t;
+
+    // Mean elongation of the Moon from the Sun, the Sun's mean anomaly, and the Moon's mean
+    // anomaly, all in degrees (Meeus 47.2).
+    const double meanElongationDeg = 297.8501921 + 445267.1114034 * t - 0.0018819 * t2 +
+                                     t3 / 545868.0 - t4 / 113065000.0;
+    const double sunMeanAnomalyDeg =
+        357.5291092 + 35999.0502909 * t - 0.0001536 * t2 + t3 / 24490000.0;
+    const double moonMeanAnomalyDeg = 134.9633964 + 477198.8675055 * t + 0.0087414 * t2 +
+                                      t3 / 69699.0 - t4 / 14712000.0;
+
+    const double meanElongation = NormalizeDegrees(meanElongationDeg);
+    const double d = meanElongation * kDegToRad;
+    const double m = NormalizeDegrees(sunMeanAnomalyDeg) * kDegToRad;
+    const double mp = NormalizeDegrees(moonMeanAnomalyDeg) * kDegToRad;
+
+    // Phase angle (Sun-Moon-Earth), low precision, with its largest periodic correction terms
+    // (Meeus 48.4): 180 degrees (unlit) at new moon, 0 (fully lit) at full moon.
+    const double phaseAngleDeg = 180.0 - meanElongation - 6.289 * std::sin(mp) +
+                                 2.100 * std::sin(m) - 1.274 * std::sin(2.0 * d - mp) -
+                                 0.658 * std::sin(2.0 * d) - 0.214 * std::sin(2.0 * mp) -
+                                 0.110 * std::sin(d);
+
+    LunarPhase phase;
+    phase.illuminatedFraction = (1.0 + std::cos(phaseAngleDeg * kDegToRad)) / 2.0;
+    phase.ageDays = meanElongation / 360.0 * SynodicMonthDays();
+    return phase;
+}
+
+} // namespace core
