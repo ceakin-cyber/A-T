@@ -1,6 +1,7 @@
 #pragma once
 
 #include "net/tle_cache.h"
+#include "net/tle_source.h"
 
 #include <optional>
 #include <string>
@@ -10,13 +11,12 @@ namespace app {
 
 // The station's own identity and health, for the header's system status readout: who is running
 // it, which node it is, what mode it is operating in, its overall lifecycle state, and when its
-// data was last synchronized. callsign and nodeId have real (if hardcoded) values, and state and
-// lastSync have real starting values (see SystemState and LastSync below); mode is still a plain
-// placeholder, wired to reflect the app's actual behavior in the issue after this one.
+// data was last synchronized. Every field now has a real (if sometimes hardcoded) source: see
+// kCallsign/kNodeId, and SystemState, SystemMode and LastSync below.
 struct SystemStatus {
     std::string callsign;              // operator identity, e.g. an amateur radio callsign
     std::string nodeId;                // this station's own identifier
-    std::string mode;                  // operating mode, e.g. "LIVE", "CACHED", "LOW-VISIBILITY"
+    std::string mode;                  // operating mode, e.g. "LIVE", "CACHED"; see SystemMode
     std::string state = "INITIALIZING"; // lifecycle state; see SystemState
 
     // When this station's data (its tracked satellites' TLEs, at least) was last synchronized.
@@ -25,9 +25,8 @@ struct SystemStatus {
 };
 
 // A placeholder callsign and node id, until a config file (like app::kObserver before it) makes
-// them real; mode and lastSync are still wired up in later issues. "N0CALL" is the ham radio
-// convention for "no callsign set" -- not a real signal, and a clear placeholder to anyone who
-// recognizes it.
+// them real. "N0CALL" is the ham radio convention for "no callsign set" -- not a real signal,
+// and a clear placeholder to anyone who recognizes it.
 inline constexpr const char* kCallsign = "N0CALL";
 inline constexpr const char* kNodeId = "NODE-01";
 
@@ -40,6 +39,17 @@ inline constexpr const char* kNodeId = "NODE-01";
 // and the first call in this app's current, synchronous startup, but the field still models the
 // state honestly for whenever loading becomes asynchronous.
 std::string SystemState(bool anySatelliteLoaded);
+
+// The system's operating mode across every loaded satellite's TLE source, for
+// SystemStatus::mode: "LOW-VISIBILITY" if any of them is running on a stale cache after a failed
+// fetch (the worst case, and worth flagging even if others are fine), else "CACHED" if any of
+// the rest came from a fresh cache rather than the network, else "LIVE" if every one came
+// straight from the network. This mirrors FormatNodeMode (app/format.h) -- indeed reuses it for
+// the non-empty case -- generalized from one satellite to the whole roster, the same way
+// SystemState and LastSync generalize their own single-satellite counterparts. Empty input (no
+// satellite loaded at all, the same case SystemState reports as "OFFLINE") returns "OFFLINE"
+// too, so the result is always one of those four values, never blank.
+std::string SystemMode(const std::vector<net::TleSource>& sources);
 
 // The most recent successful data fetch, for SystemStatus::lastSync: the latest of the given
 // fetch times (each a loaded satellite's own TrackedSatellite::fetchedAt), or nullopt if
