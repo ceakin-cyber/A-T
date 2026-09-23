@@ -4,6 +4,7 @@
 #include <cctype>
 #include <charconv>
 #include <fstream>
+#include <iomanip>
 #include <iostream>
 #include <optional>
 #include <sstream>
@@ -92,7 +93,8 @@ std::vector<Star> ParseStarCatalog(const std::string& text) {
         columnIndex[header[i]] = i;
     }
 
-    static const char* const kRequiredColumns[] = {"id", "hip", "rarad", "decrad", "mag", "ci"};
+    static const char* const kRequiredColumns[] = {"id",  "hip", "rarad", "decrad",
+                                                   "mag", "ci",  "proper"};
     for (const char* column : kRequiredColumns) {
         if (columnIndex.find(column) == columnIndex.end()) {
             std::cerr << "Star catalog is missing the required column '" << column << "'\n";
@@ -105,7 +107,9 @@ std::vector<Star> ParseStarCatalog(const std::string& text) {
     const std::size_t decCol = columnIndex["decrad"];
     const std::size_t magCol = columnIndex["mag"];
     const std::size_t ciCol = columnIndex["ci"];
-    const std::size_t minColumns = 1 + std::max({idCol, hipCol, raCol, decCol, magCol, ciCol});
+    const std::size_t properCol = columnIndex["proper"];
+    const std::size_t minColumns =
+        1 + std::max({idCol, hipCol, raCol, decCol, magCol, ciCol, properCol});
 
     std::string line;
     int lineNumber = 1;
@@ -141,6 +145,7 @@ std::vector<Star> ParseStarCatalog(const std::string& text) {
         star.decRad = *dec;
         star.magnitude = *mag;
         star.colorIndex = ParseDouble(fields[ciCol]).value_or(0.0);
+        star.properName = fields[properCol];
         stars.push_back(star);
     }
     return stars;
@@ -226,6 +231,18 @@ Rgb ColorIndexToRgb(double colorIndex) {
         }
     }
     return kColorAnchors[kAnchorCount - 1].color;
+}
+
+std::string StarLabel(const Star& star) {
+    if (star.magnitude > kLabelMagnitude) {
+        return "";
+    }
+    if (!star.properName.empty()) {
+        return star.properName;
+    }
+    std::ostringstream oss;
+    oss << std::fixed << std::setprecision(1) << star.magnitude;
+    return oss.str();
 }
 
 } // namespace core

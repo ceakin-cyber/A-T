@@ -17,6 +17,9 @@ struct Star {
     double decRad = 0.0;      // declination, radians
     double magnitude = 0.0;   // apparent magnitude; smaller is brighter
     double colorIndex = 0.0;  // B-V color index; 0.0 (neutral/white) if the catalog left it blank
+    std::string properName;   // common name, e.g. "Sirius"; empty if the catalog left it blank
+                               // (true of most stars -- only the brightest and best-known have
+                               // one)
 };
 
 // A star together with where it currently sits in an observer's sky.
@@ -26,10 +29,10 @@ struct VisibleStar {
 };
 
 // Parses a star catalog in the HYG Database's CSV format. The header row is required, and
-// columns are found by name ("id", "hip", "rarad", "decrad", "mag", "ci"), not fixed position,
-// so a future catalog revision that reorders columns is not silently misread. A row that cannot
-// be parsed, or is missing one of the required columns, is skipped, with a reason printed to
-// stderr; it does not stop the rest of the file from loading.
+// columns are found by name ("id", "hip", "rarad", "decrad", "mag", "ci", "proper"), not fixed
+// position, so a future catalog revision that reorders columns is not silently misread. A row
+// that cannot be parsed, or is missing one of the required columns, is skipped, with a reason
+// printed to stderr; it does not stop the rest of the file from loading.
 std::vector<Star> ParseStarCatalog(const std::string& text);
 
 // Reads and parses the catalog from a file. Returns an empty list, after printing the reason to
@@ -72,5 +75,19 @@ inline constexpr double kReddestColorIndex = 2.0; // coolest real stars (spectra
 // hand-picked to look reasonable, not a value taken from a verified scientific color table;
 // colorIndex outside [kBluestColorIndex, kReddestColorIndex] is clamped to the nearer endpoint.
 Rgb ColorIndexToRgb(double colorIndex);
+
+// The faintest magnitude worth labeling on the star map, named or not. Every star in the shipped
+// catalog has a name or not more or less independently of magnitude, and there are far more named
+// stars (in the hundreds) than there is room to label without the sky turning into a wall of
+// overlapping text (there is no label collision handling), so this gates both cases rather than
+// only the unnamed one -- roughly the four dozen best-known naked-eye stars (Sirius, Vega,
+// Betelgeuse, and the like), not every star the catalog happens to have a name for.
+inline constexpr double kLabelMagnitude = 2.0;
+
+// The text to label a star with on the star map, or empty if it should not be labeled. A star
+// fainter than kLabelMagnitude is never labeled, name or not; one at or brighter than it is
+// labeled with its proper name if the catalog gave it one, else its magnitude to one decimal
+// place.
+std::string StarLabel(const Star& star);
 
 } // namespace core

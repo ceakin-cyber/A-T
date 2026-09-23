@@ -136,6 +136,22 @@ TEST(ParseStarCatalog, AQuotedFieldWithACommaDoesNotShiftLaterColumns) {
     EXPECT_EQ(stars[0].id, 7);
     EXPECT_DOUBLE_EQ(stars[0].raRad, 0.5);
     EXPECT_DOUBLE_EQ(stars[0].magnitude, 4.0);
+    EXPECT_EQ(stars[0].properName, "Alpha, Prime");
+}
+
+TEST(ParseStarCatalog, ReadsProperName) {
+    const std::string text = std::string(kHeader) + "\n" +
+                             Row("1", "0.1", "0.1", "1.0", "0.1", "Sirius");
+    const auto stars = core::ParseStarCatalog(text);
+    ASSERT_EQ(stars.size(), 1U);
+    EXPECT_EQ(stars[0].properName, "Sirius");
+}
+
+TEST(ParseStarCatalog, ABlankProperNameDefaultsToEmpty) {
+    const std::string text = std::string(kHeader) + "\n" + Row("1", "0.1", "0.1", "1.0", "0.1");
+    const auto stars = core::ParseStarCatalog(text);
+    ASSERT_EQ(stars.size(), 1U);
+    EXPECT_TRUE(stars[0].properName.empty());
 }
 
 TEST(ParseStarCatalog, SkipsARowWithAnInvalidIdAndKeepsReadingTheRest) {
@@ -185,6 +201,11 @@ TEST(ParseStarCatalog, MissingTheHipColumnGivesAnEmptyList) {
     EXPECT_TRUE(core::ParseStarCatalog(noHip).empty());
 }
 
+TEST(ParseStarCatalog, MissingTheProperColumnGivesAnEmptyList) {
+    const std::string noProper = "id,hip,rarad,decrad,mag,ci\n1,1,0.1,0.1,1.0,0.1\n";
+    EXPECT_TRUE(core::ParseStarCatalog(noProper).empty());
+}
+
 TEST(ParseStarCatalog, HandlesCrlfLineEndings) {
     const std::string text =
         std::string(kHeader) + "\r\n" + Row("1", "0.1", "0.1", "1.0", "0.1") + "\r\n";
@@ -220,12 +241,21 @@ TEST(LoadStarCatalog, ReadsTheRealCommittedCatalog) {
     EXPECT_DOUBLE_EQ(sol->magnitude, -26.7);
     EXPECT_DOUBLE_EQ(sol->colorIndex, 0.656);
     EXPECT_EQ(sol->hip, 0); // the Sun has no Hipparcos number
+    EXPECT_EQ(sol->properName, "Sol");
 
     // Tau Phe, id 88: known values straight from the catalog file, hip equal to id for this row.
     const auto tauPhe =
         std::find_if(stars.begin(), stars.end(), [](const core::Star& s) { return s.id == 88; });
     ASSERT_NE(tauPhe, stars.end());
     EXPECT_EQ(tauPhe->hip, 88);
+    EXPECT_TRUE(tauPhe->properName.empty()); // most stars have no common name
+
+    // Sirius, the brightest real star: known to have the proper name "Sirius" in this catalog.
+    const auto sirius = std::find_if(stars.begin(), stars.end(), [](const core::Star& s) {
+        return s.properName == "Sirius";
+    });
+    ASSERT_NE(sirius, stars.end());
+    EXPECT_NEAR(sirius->magnitude, -1.44, 1e-6);
 }
 
 // The three cases below have independently-verified altitudes (see tests/celestial_test.cpp for
@@ -432,6 +462,49 @@ TEST(ColorIndexToRgb, TheSunsOwnColorIndexLandsInTheYellowWhiteRange) {
     EXPECT_LT(sol.g, 1.0F);
     EXPECT_GT(sol.g, 0.85F);
     EXPECT_LT(sol.b, sol.g);
+}
+
+core::Star MakeLabelTestStar(double magnitude, const std::string& properName) {
+    core::Star star;
+    star.magnitude = magnitude;
+    star.properName = properName;
+    return star;
+}
+
+TEST(StarLabel, ABrightNamedStarIsLabeledWithItsName) {
+    EXPECT_EQ(core::StarLabel(MakeLabelTestStar(-1.44, "Sirius")), "Sirius");
+}
+
+TEST(StarLabel, ADimNamedStarHasNoLabel) {
+    // A name alone is not enough: fainter than kLabelMagnitude means no label, named or not,
+    // so the map does not turn into a wall of overlapping text.
+    EXPECT_EQ(core::StarLabel(MakeLabelTestStar(6.0, "Some Obscure Name")), "");
+}
+
+TEST(StarLabel, ADimUnnamedStarHasNoLabel) {
+    EXPECT_EQ(core::StarLabel(MakeLabelTestStar(6.0, "")), "");
+}
+
+TEST(StarLabel, ABrightUnnamedStarIsLabeledWithItsMagnitude) {
+    EXPECT_EQ(core::StarLabel(MakeLabelTestStar(0.96, "")), "1.0");
+}
+
+TEST(StarLabel, ExactlyAtTheThresholdIsLabeled) {
+    EXPECT_EQ(core::StarLabel(MakeLabelTestStar(core::kLabelMagnitude, "")), "2.0");
+}
+
+TEST(StarLabel, JustDimmerThanTheThresholdHasNoLabel) {
+    EXPECT_EQ(core::StarLabel(MakeLabelTestStar(core::kLabelMagnitude + 0.01, "")), "");
+}
+
+TEST(StarLabel, ABrightNamedStarPrefersItsNameOverItsMagnitude) {
+    EXPECT_EQ(core::StarLabel(MakeLabelTestStar(-1.44, "Sirius")), "Sirius");
+}
+
+TEST(StarLabel, AVeryNegativeMagnitudeStillFormatsCleanly) {
+    // Sol, in this app's own catalog: -26.7. Even without a name, a very bright object should
+    // format to a short, sane label, not something pathological.
+    EXPECT_EQ(core::StarLabel(MakeLabelTestStar(-26.7, "")), "-26.7");
 }
 
 } // namespace
