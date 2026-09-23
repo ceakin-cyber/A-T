@@ -108,12 +108,43 @@ TEST(LoadConstellationLines, ReadsTheRealCommittedData) {
     }
 }
 
+TEST(StarHipIndex, FindsAStarByItsHipNumber) {
+    const std::vector<core::Star> stars = {MakeStar(1, 0.0, 60.0), MakeStar(2, 10.0, 60.0)};
+    const core::StarHipIndex index(stars);
+    const core::Star* found = index.Find(2);
+    ASSERT_NE(found, nullptr);
+    EXPECT_EQ(found->hip, 2);
+}
+
+TEST(StarHipIndex, ReturnsNullForAHipNotInTheCatalog) {
+    const std::vector<core::Star> stars = {MakeStar(1, 0.0, 60.0)};
+    const core::StarHipIndex index(stars);
+    EXPECT_EQ(index.Find(999), nullptr);
+}
+
+TEST(StarHipIndex, HipZeroIsNeverFound) {
+    // hip 0 marks "no Hipparcos number" (see Star::hip); it must never be treated as a valid
+    // match, even if a star somehow has it or a lookup somehow asks for it.
+    core::Star noHip = MakeStar(1, 0.0, 60.0);
+    noHip.hip = 0;
+    const std::vector<core::Star> stars = {noHip};
+    const core::StarHipIndex index(stars);
+    EXPECT_EQ(index.Find(0), nullptr);
+}
+
+TEST(StarHipIndex, AnEmptyCatalogFindsNothing) {
+    const std::vector<core::Star> stars;
+    const core::StarHipIndex index(stars);
+    EXPECT_EQ(index.Find(1), nullptr);
+}
+
 // The endpoints below have independently-verified altitudes, the same geometry used in
 // tests/star_catalog_test.cpp's VisibleStars tests: a star above the horizon (dec 60, seen from
 // lat 40, at 70 degrees altitude) and one below it (dec -80).
 
 TEST(VisibleConstellationLines, KeepsASegmentWithBothEndpointsAboveTheHorizon) {
-    const std::vector<core::Star> stars = {MakeStar(1, 0.0, 60.0), MakeStar(2, 10.0, 60.0)};
+    const std::vector<core::Star> starList = {MakeStar(1, 0.0, 60.0), MakeStar(2, 10.0, 60.0)};
+    const core::StarHipIndex stars(starList);
     const std::vector<core::ConstellationLine> segments = {{"Test", 1, 2}};
     const auto visible = core::VisibleConstellationLines(stars, segments, Radians(40.0), 0.0);
     ASSERT_EQ(visible.size(), 1U);
@@ -121,41 +152,46 @@ TEST(VisibleConstellationLines, KeepsASegmentWithBothEndpointsAboveTheHorizon) {
 }
 
 TEST(VisibleConstellationLines, DropsASegmentWithEitherEndpointBelowTheHorizon) {
-    const std::vector<core::Star> stars = {MakeStar(1, 0.0, 60.0), MakeStar(2, 0.0, -80.0)};
+    const std::vector<core::Star> starList = {MakeStar(1, 0.0, 60.0), MakeStar(2, 0.0, -80.0)};
+    const core::StarHipIndex stars(starList);
     const std::vector<core::ConstellationLine> segments = {{"Test", 1, 2}};
     EXPECT_TRUE(core::VisibleConstellationLines(stars, segments, Radians(40.0), 0.0).empty());
 }
 
 TEST(VisibleConstellationLines, DropsASegmentWithAnEndpointMissingFromTheStarList) {
-    const std::vector<core::Star> stars = {MakeStar(1, 0.0, 60.0)};
+    const std::vector<core::Star> starList = {MakeStar(1, 0.0, 60.0)};
+    const core::StarHipIndex stars(starList);
     const std::vector<core::ConstellationLine> segments = {{"Test", 1, 999}};
     EXPECT_TRUE(core::VisibleConstellationLines(stars, segments, Radians(40.0), 0.0).empty());
 }
 
 TEST(VisibleConstellationLines, AStarWithHipZeroNeverMatchesAnEndpoint) {
-    // hip 0 marks "no Hipparcos number" (see Star::hip); it must never be treated as a valid
-    // match, even if a malformed line file somehow asked for endpoint 0.
     core::Star noHip = MakeStar(1, 0.0, 60.0);
     noHip.hip = 0;
-    const std::vector<core::Star> stars = {noHip};
+    const std::vector<core::Star> starList = {noHip};
+    const core::StarHipIndex stars(starList);
     const std::vector<core::ConstellationLine> segments = {{"Test", 0, 0}};
     EXPECT_TRUE(core::VisibleConstellationLines(stars, segments, Radians(40.0), 0.0).empty());
 }
 
 TEST(VisibleConstellationLines, KeepsMultipleSegmentsAndDropsOnlyTheInvisibleOne) {
-    const std::vector<core::Star> stars = {MakeStar(1, 0.0, 60.0), MakeStar(2, 10.0, 60.0),
-                                           MakeStar(3, 0.0, -80.0)};
+    const std::vector<core::Star> starList = {MakeStar(1, 0.0, 60.0), MakeStar(2, 10.0, 60.0),
+                                              MakeStar(3, 0.0, -80.0)};
+    const core::StarHipIndex stars(starList);
     const std::vector<core::ConstellationLine> segments = {{"A", 1, 2}, {"B", 1, 3}};
     const auto visible = core::VisibleConstellationLines(stars, segments, Radians(40.0), 0.0);
     EXPECT_EQ(visible.size(), 1U);
 }
 
 TEST(VisibleConstellationLines, EmptyInputsGiveEmptyOutput) {
-    EXPECT_TRUE(core::VisibleConstellationLines({}, {}, Radians(40.0), 0.0).empty());
+    const std::vector<core::Star> starList;
+    const core::StarHipIndex stars(starList);
+    EXPECT_TRUE(core::VisibleConstellationLines(stars, {}, Radians(40.0), 0.0).empty());
 }
 
 TEST(VisibleConstellationLines, ThePositionsMatchCallingTheTransformDirectly) {
-    const std::vector<core::Star> stars = {MakeStar(5, 0.0, 60.0), MakeStar(6, 10.0, 60.0)};
+    const std::vector<core::Star> starList = {MakeStar(5, 0.0, 60.0), MakeStar(6, 10.0, 60.0)};
+    const core::StarHipIndex stars(starList);
     const std::vector<core::ConstellationLine> segments = {{"Test", 5, 6}};
     const auto visible = core::VisibleConstellationLines(stars, segments, Radians(40.0), 0.0);
     ASSERT_EQ(visible.size(), 1U);
@@ -167,6 +203,20 @@ TEST(VisibleConstellationLines, ThePositionsMatchCallingTheTransformDirectly) {
     EXPECT_DOUBLE_EQ(visible[0].a.azimuthRad, expectedA.azimuthRad);
     EXPECT_DOUBLE_EQ(visible[0].b.altitudeRad, expectedB.altitudeRad);
     EXPECT_DOUBLE_EQ(visible[0].b.azimuthRad, expectedB.azimuthRad);
+}
+
+// End-to-end against the real, committed catalog and line data: confirms the index resolves
+// real Hipparcos numbers, not just the small synthetic ones above.
+TEST(VisibleConstellationLines, ResolvesSegmentsAgainstTheRealCommittedData) {
+    const auto stars = core::LoadStarCatalog("assets/stars/hygdata_mag6.csv");
+    const auto lines = core::LoadConstellationLines("assets/stars/constellation_lines.csv");
+    const core::StarHipIndex index(stars);
+
+    // An observer above the equator, at a local sidereal time that puts a good swath of the sky
+    // above the horizon, so at least some real segments resolve.
+    const auto visible = core::VisibleConstellationLines(index, lines, Radians(40.0), 0.0);
+    EXPECT_GT(visible.size(), 0U);
+    EXPECT_LE(visible.size(), lines.size());
 }
 
 } // namespace

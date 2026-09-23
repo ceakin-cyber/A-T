@@ -5,6 +5,7 @@
 
 #include <filesystem>
 #include <string>
+#include <unordered_map>
 #include <vector>
 
 namespace core {
@@ -29,6 +30,27 @@ std::vector<ConstellationLine> ParseConstellationLines(const std::string& text);
 // file cannot be read.
 std::vector<ConstellationLine> LoadConstellationLines(const std::filesystem::path& path);
 
+// An index of a star catalog by Hipparcos number, for resolving constellation line data against
+// it. Build once from a loaded catalog and reuse it every frame: the catalog is loaded once at
+// startup and never changes afterward, so rebuilding a lookup from scratch on every call would
+// redo the same O(number of stars) work every single frame for no reason.
+//
+// Points into `stars` rather than copying it, so `stars` must outlive the index (and must not be
+// modified in a way that invalidates its elements' addresses, such as a push_back past its
+// capacity) -- do not build this from a temporary.
+class StarHipIndex {
+  public:
+    explicit StarHipIndex(const std::vector<Star>& stars);
+
+    // The star with this Hipparcos number, or null if none is indexed: hip is 0 ("no Hipparcos
+    // number", see Star::hip), or the star isn't in the catalog this index was built from (for
+    // example, fainter than that catalog's magnitude cutoff).
+    const Star* Find(int hip) const;
+
+  private:
+    std::unordered_map<int, const Star*> byHip_;
+};
+
 // A constellation line segment resolved to where its two endpoint stars currently sit in an
 // observer's sky.
 struct VisibleConstellationLine {
@@ -43,7 +65,7 @@ struct VisibleConstellationLine {
 // entirely, not clipped, if either endpoint is missing from `stars` (for example, fainter than
 // this catalog's magnitude cutoff) or below the horizon.
 std::vector<VisibleConstellationLine> VisibleConstellationLines(
-    const std::vector<Star>& stars, const std::vector<ConstellationLine>& lines,
+    const StarHipIndex& stars, const std::vector<ConstellationLine>& lines,
     double observerLatRad, double lstRad);
 
 } // namespace core

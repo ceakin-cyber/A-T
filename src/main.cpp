@@ -128,6 +128,9 @@ int main(int /*argc*/, char** argv) {
         core::LoadConstellationLines(exeDir / "assets" / "stars" / "constellation_lines.csv");
     std::cout << "Constellation lines: " << constellationLines.size() << " segments\n";
 
+    // Built once and reused every frame, rather than re-indexing the whole catalog each time.
+    const core::StarHipIndex starHipIndex(starCatalog);
+
     while (!glfwWindowShouldClose(window)) {
         const net::Clock::time_point now = std::chrono::system_clock::now();
         roster.Update(now);
@@ -151,7 +154,7 @@ int main(int /*argc*/, char** argv) {
         const std::vector<core::VisibleStar> visibleStars =
             core::VisibleStars(starCatalog, config.observer.latitude, lst);
         const std::vector<core::VisibleConstellationLine> visibleConstellationLines =
-            core::VisibleConstellationLines(starCatalog, constellationLines,
+            core::VisibleConstellationLines(starHipIndex, constellationLines,
                                             config.observer.latitude, lst);
 
         const app::TrackedSatellite* selectedSatellite =

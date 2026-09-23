@@ -119,27 +119,34 @@ std::vector<ConstellationLine> LoadConstellationLines(const std::filesystem::pat
     return ParseConstellationLines(buffer.str());
 }
 
-std::vector<VisibleConstellationLine> VisibleConstellationLines(
-    const std::vector<Star>& stars, const std::vector<ConstellationLine>& lines,
-    double observerLatRad, double lstRad) {
-    std::unordered_map<int, const Star*> starByHip;
+StarHipIndex::StarHipIndex(const std::vector<Star>& stars) {
+    byHip_.reserve(stars.size());
     for (const Star& star : stars) {
         if (star.hip != 0) {
-            starByHip.emplace(star.hip, &star);
+            byHip_.emplace(star.hip, &star);
         }
     }
+}
 
+const Star* StarHipIndex::Find(int hip) const {
+    const auto it = byHip_.find(hip);
+    return it == byHip_.end() ? nullptr : it->second;
+}
+
+std::vector<VisibleConstellationLine> VisibleConstellationLines(
+    const StarHipIndex& stars, const std::vector<ConstellationLine>& lines,
+    double observerLatRad, double lstRad) {
     std::vector<VisibleConstellationLine> visible;
     for (const ConstellationLine& segment : lines) {
-        const auto itA = starByHip.find(segment.hip1);
-        const auto itB = starByHip.find(segment.hip2);
-        if (itA == starByHip.end() || itB == starByHip.end()) {
+        const Star* starA = stars.Find(segment.hip1);
+        const Star* starB = stars.Find(segment.hip2);
+        if (starA == nullptr || starB == nullptr) {
             continue;
         }
-        const HorizontalPosition posA = EquatorialToHorizontal(
-            itA->second->raRad, itA->second->decRad, observerLatRad, lstRad);
-        const HorizontalPosition posB = EquatorialToHorizontal(
-            itB->second->raRad, itB->second->decRad, observerLatRad, lstRad);
+        const HorizontalPosition posA =
+            EquatorialToHorizontal(starA->raRad, starA->decRad, observerLatRad, lstRad);
+        const HorizontalPosition posB =
+            EquatorialToHorizontal(starB->raRad, starB->decRad, observerLatRad, lstRad);
         if (posA.altitudeRad < 0.0 || posB.altitudeRad < 0.0) {
             continue;
         }
