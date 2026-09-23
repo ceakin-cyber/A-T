@@ -7,7 +7,9 @@ namespace ui {
 // Draws the scrolling incoming-transmission log: real events from the app's own pipeline (TLE
 // fetches, propagator initialization, pass computations, and the like), across every watched
 // satellite -- separate from the per-satellite EVENT LOG panel, which only logs signal
-// acquired/lost for the selected one. Docked into the dashboard's dockspace by default.
-void DrawIncomingTransmissionPanel(const app::EventLog& log);
+// acquired/lost for the selected one. Docked into the dashboard's dockspace by default. Each new
+// line types itself in (see app::TypingEffect); `now` is this frame's real time, which drives
+// that effect.
+void DrawIncomingTransmissionPanel(const app::EventLog& log, net::Clock::time_point now);
 
 } // namespace ui

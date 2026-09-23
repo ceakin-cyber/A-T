@@ -237,7 +237,7 @@ int main(int /*argc*/, char** argv) {
         ui::DrawStarMapPanel(visibleStars, visibleConstellationLines, showConstellationLines,
                             showStarLabels, starMapTime, now);
         ui::DrawEventLogPanel(selected.eventLog);
-        ui::DrawIncomingTransmissionPanel(transmissionLog);
+        ui::DrawIncomingTransmissionPanel(transmissionLog, now);
         ImGui::Render();
 
         // A minimised window has no pixels to draw into; skip drawing until it comes back.
