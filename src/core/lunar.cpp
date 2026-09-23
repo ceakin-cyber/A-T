@@ -1,5 +1,6 @@
 #include "core/lunar.h"
 
+#include <algorithm>
 #include <cmath>
 #include <numbers>
 
@@ -60,6 +61,90 @@ LunarPhase LunarPhaseAt(double julianDate) {
     phase.illuminatedFraction = (1.0 + std::cos(phaseAngleDeg * kDegToRad)) / 2.0;
     phase.ageDays = meanElongation / 360.0 * SynodicMonthDays();
     return phase;
+}
+
+namespace {
+
+constexpr double kExtremeToleranceDays = 60.0 / 86400.0; // about a minute
+
+// Golden-section search for where illuminatedFraction reaches its maximum (findMaximum) or
+// minimum (!findMaximum) in [a, b], to about a minute. Assumes a single such extremum in the
+// interval -- the same assumption core::FindMaxElevation makes about a single elevation peak in
+// a pass, which NextExtreme's caller is responsible for bracketing correctly before calling this.
+double RefineExtreme(double a, double b, bool findMaximum) {
+    constexpr double kInverseGoldenRatio = 0.6180339887498949;
+    const auto value = [findMaximum](double jd) {
+        const double illuminated = LunarPhaseAt(jd).illuminatedFraction;
+        return findMaximum ? illuminated : -illuminated;
+    };
+
+    double c = b - kInverseGoldenRatio * (b - a);
+    double d = a + kInverseGoldenRatio * (b - a);
+    double fc = value(c);
+    double fd = value(d);
+    while (b - a > kExtremeToleranceDays) {
+        if (fc > fd) {
+            b = d;
+            d = c;
+            fd = fc;
+            c = b - kInverseGoldenRatio * (b - a);
+            fc = value(c);
+        } else {
+            a = c;
+            c = d;
+            fc = fd;
+            d = a + kInverseGoldenRatio * (b - a);
+            fd = value(d);
+        }
+    }
+    return 0.5 * (a + b);
+}
+
+// Steps forward from `fromJulianDate`, watching illuminatedFraction for the first step where it
+// stops moving toward the target extreme (rising, for a maximum; falling, for a minimum), then
+// narrows the two-step bracket around that reversal with RefineExtreme. See NextNewMoon and
+// NextFullMoon's shared doc comment in core/lunar.h for the reasoning behind this approach.
+std::optional<double> NextExtreme(double fromJulianDate, bool findMaximum, double stepDays,
+                                  double maxDays) {
+    struct Sample {
+        double jd;
+        double illuminatedFraction;
+    };
+    const auto sample = [](double jd) { return Sample{jd, LunarPhaseAt(jd).illuminatedFraction}; };
+
+    Sample current = sample(fromJulianDate);
+    std::optional<Sample> previous;
+    std::optional<bool> wasApproaching;
+
+    double elapsed = 0.0;
+    while (elapsed < maxDays) {
+        const double step = std::min(stepDays, maxDays - elapsed);
+        const Sample next = sample(current.jd + step);
+        const bool isApproaching = findMaximum
+                                       ? next.illuminatedFraction > current.illuminatedFraction
+                                       : next.illuminatedFraction < current.illuminatedFraction;
+
+        if (wasApproaching.has_value() && *wasApproaching && !isApproaching) {
+            const double left = previous ? previous->jd : fromJulianDate;
+            return RefineExtreme(left, next.jd, findMaximum);
+        }
+
+        wasApproaching = isApproaching;
+        previous = current;
+        current = next;
+        elapsed += step;
+    }
+    return std::nullopt;
+}
+
+} // namespace
+
+std::optional<double> NextNewMoon(double fromJulianDate, double stepDays, double maxDays) {
+    return NextExtreme(fromJulianDate, /*findMaximum=*/false, stepDays, maxDays);
+}
+
+std::optional<double> NextFullMoon(double fromJulianDate, double stepDays, double maxDays) {
+    return NextExtreme(fromJulianDate, /*findMaximum=*/true, stepDays, maxDays);
 }
 
 } // namespace core

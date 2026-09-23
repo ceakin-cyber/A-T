@@ -1,5 +1,7 @@
 #pragma once
 
+#include <optional>
+
 namespace core {
 
 // The Moon's phase at a given moment: how far through the ~29.5-day synodic cycle (new moon to
@@ -26,5 +28,26 @@ double SynodicMonthDays();
 // across several reference dates; see tests/lunar_test.cpp). UT1/TT are not distinguished here,
 // far smaller than this calculation's own error.
 LunarPhase LunarPhaseAt(double julianDate);
+
+// The next new moon (illuminatedFraction at its lowest) or full moon (at its highest) at or
+// after `fromJulianDate`. Found by stepping forward through time in `stepDays` increments,
+// watching for illuminatedFraction to stop moving toward the target extreme, then narrowing that
+// bracket to about a minute by golden-section search -- the same forward-stepping-then-refine
+// approach core::FindPasses/FindMaxElevation (core/passes.h) use for satellite passes, applied
+// here to the illuminated-fraction curve instead of elevation. Because the search works against
+// illuminatedFraction's own periodic correction terms (not the uncorrected mean elongation
+// LunarPhaseAt's own ageDays is based on), the result is markedly more accurate than deriving a
+// next-event time from ageDays alone: within about 20 minutes of the independent `pyephem`
+// library across several cases, versus ageDays's own roughly half-day error (see
+// tests/lunar_test.cpp).
+//
+// stepDays only needs to be much finer than half a synodic month (~14.8 days) to not miss the
+// target, which the default comfortably is. Returns nullopt only if nothing is found within
+// maxDays, which should never happen in practice: consecutive new moons (or consecutive full
+// moons) are at most about 29.6 days apart, well under the default.
+std::optional<double> NextNewMoon(double fromJulianDate, double stepDays = 1.0,
+                                  double maxDays = 40.0);
+std::optional<double> NextFullMoon(double fromJulianDate, double stepDays = 1.0,
+                                   double maxDays = 40.0);
 
 } // namespace core
