@@ -1,5 +1,6 @@
 #include "app/config.h"
 #include "app/event_log.h"
+#include "app/operating_rules.h"
 #include "app/satellite_roster.h"
 #include "app/star_map_time.h"
 #include "app/system_status.h"
@@ -17,6 +18,7 @@
 #include "ui/header.h"
 #include "ui/incoming_transmission_panel.h"
 #include "ui/lunar_alignment_panel.h"
+#include "ui/operating_rules_panel.h"
 #include "ui/pass_panel.h"
 #include "ui/screen_pass.h"
 #include "ui/star_map_panel.h"
@@ -185,6 +187,12 @@ int main(int /*argc*/, char** argv) {
         core::LoadConstellationLines(exeDir / "assets" / "stars" / "constellation_lines.csv");
     std::cout << "Constellation lines: " << constellationLines.size() << " segments\n";
 
+    // Loaded once for the static OPERATING RULES panel; edit the file and restart to change it
+    // (see assets/operating_rules.txt), no in-app reload.
+    const std::vector<std::string> operatingRules =
+        app::LoadOperatingRules(exeDir / "assets" / "operating_rules.txt");
+    std::cout << "Operating rules: " << operatingRules.size() << " loaded\n";
+
     // Built once and reused every frame, rather than re-indexing the whole catalog each time.
     const core::StarHipIndex starHipIndex(starCatalog);
 
@@ -261,6 +269,7 @@ int main(int /*argc*/, char** argv) {
                                         lunarRefreshedAt)) {
             refreshLunarSnapshot(now);
         }
+        ui::DrawOperatingRulesPanel(operatingRules);
         ImGui::Render();
 
         // A minimised window has no pixels to draw into; skip drawing until it comes back.
