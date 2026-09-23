@@ -19,11 +19,14 @@ ImVec2 Project(const core::HorizontalPosition& position, ImVec2 origin, ImVec2 s
 } // namespace
 
 void DrawStarMapPanel(const std::vector<core::VisibleStar>& visibleStars,
-                      const std::vector<core::VisibleConstellationLine>& constellationLines) {
+                      const std::vector<core::VisibleConstellationLine>& constellationLines,
+                      bool& showConstellationLines) {
     if (!ImGui::Begin("STAR MAP")) {
         ImGui::End();
         return;
     }
+
+    ImGui::Checkbox("CONSTELLATION LINES", &showConstellationLines);
 
     const ImVec2 avail = ImGui::GetContentRegionAvail();
     if (avail.x < 2.0F || avail.y < 2.0F) {
@@ -41,10 +44,12 @@ void DrawStarMapPanel(const std::vector<core::VisibleStar>& visibleStars,
     drawList->AddRect(origin, {origin.x + size.x, origin.y + size.y}, borderColor);
 
     // Drawn before the stars, so the star points sit on top of the lines rather than under them.
-    for (const core::VisibleConstellationLine& line : constellationLines) {
-        const ImVec2 a = Project(line.a, origin, size);
-        const ImVec2 b = Project(line.b, origin, size);
-        drawList->AddLine(a, b, lineColor);
+    if (showConstellationLines) {
+        for (const core::VisibleConstellationLine& line : constellationLines) {
+            const ImVec2 a = Project(line.a, origin, size);
+            const ImVec2 b = Project(line.b, origin, size);
+            drawList->AddLine(a, b, lineColor);
+        }
     }
 
     for (const core::VisibleStar& visible : visibleStars) {
