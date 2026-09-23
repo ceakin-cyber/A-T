@@ -189,6 +189,16 @@ int main(int /*argc*/, char** argv) {
             }
         }
 
+        // A fallback heartbeat once the feed above has gone quiet for a while (see IsIdle's own
+        // comment on why this does not repeat every frame once logged).
+        const std::optional<net::Clock::time_point> lastTransmission =
+            transmissionLog.Entries().empty()
+                ? std::nullopt
+                : std::optional(transmissionLog.Entries().back().time);
+        if (app::IsIdle(lastTransmission, now)) {
+            transmissionLog.Add(now, "PASSIVE MONITORING ENGAGED");
+        }
+
         int width = 0;
         int height = 0;
         glfwGetFramebufferSize(window, &width, &height);

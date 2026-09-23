@@ -13,4 +13,11 @@ bool PassChanged(const std::optional<core::Pass>& previous,
     return previous->riseJd != current->riseJd;
 }
 
+bool IsIdle(std::optional<net::Clock::time_point> lastEventTime, net::Clock::time_point now) {
+    if (!lastEventTime.has_value()) {
+        return true;
+    }
+    return now - *lastEventTime >= kIdleThreshold;
+}
+
 } // namespace app
