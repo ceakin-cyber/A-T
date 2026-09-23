@@ -77,7 +77,7 @@ target_include_directories(net PUBLIC src)
 target_link_libraries(net PRIVATE cpr::cpr)
 
 # Glue between the network layer and the astronomy code.
-add_library(app STATIC src/app/config.cpp src/app/event_log.cpp src/app/format.cpp src/app/ground_track.cpp src/app/pass_planner.cpp src/app/satellite_position.cpp src/app/satellite_roster.cpp src/app/star_map_time.cpp src/app/tle_age.cpp src/app/tracked_satellite.cpp)
+add_library(app STATIC src/app/config.cpp src/app/event_log.cpp src/app/format.cpp src/app/ground_track.cpp src/app/pass_planner.cpp src/app/satellite_position.cpp src/app/satellite_roster.cpp src/app/star_map_time.cpp src/app/system_status.cpp src/app/tle_age.cpp src/app/tracked_satellite.cpp)
 target_include_directories(app PUBLIC src)
 target_link_libraries(app PUBLIC core net)
 
