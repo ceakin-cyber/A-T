@@ -81,7 +81,7 @@ add_library(app STATIC src/app/config.cpp src/app/event_log.cpp src/app/format.c
 target_include_directories(app PUBLIC src)
 target_link_libraries(app PUBLIC core net)
 
-add_executable(a-t src/main.cpp src/ui/bloom_chain.cpp src/ui/crt_tuning_panel.cpp src/ui/dockspace.cpp src/ui/event_log_panel.cpp src/ui/framebuffer.cpp src/ui/fullscreen_triangle.cpp src/ui/ground_track_panel.cpp src/ui/header.cpp src/ui/pass_panel.cpp src/ui/rows.cpp src/ui/screen_pass.cpp src/ui/shader.cpp src/ui/star_map_panel.cpp src/ui/style.cpp src/ui/tracker_panel.cpp src/ui/watchlist_panel.cpp)
+add_executable(a-t src/main.cpp src/ui/bloom_chain.cpp src/ui/crt_tuning_panel.cpp src/ui/dockspace.cpp src/ui/event_log_panel.cpp src/ui/framebuffer.cpp src/ui/fullscreen_triangle.cpp src/ui/ground_track_panel.cpp src/ui/header.cpp src/ui/pass_panel.cpp src/ui/rows.cpp src/ui/screen_pass.cpp src/ui/shader.cpp src/ui/star_map_panel.cpp src/ui/style.cpp src/ui/system_status_panel.cpp src/ui/tracker_panel.cpp src/ui/watchlist_panel.cpp)
 target_include_directories(a-t PRIVATE src)
 target_link_libraries(a-t PRIVATE app core net glfw glad imgui)
 # glad provides the GL headers; keep GLFW from including its own.
