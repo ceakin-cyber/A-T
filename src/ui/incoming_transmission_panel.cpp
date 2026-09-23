@@ -4,8 +4,8 @@
 
 namespace ui {
 
-void DrawIncomingTransmissionPanel(const app::EventLog& log) {
-    DrawLogPanel("INCOMING TRANSMISSION", log, "AWAITING TRANSMISSION...");
+void DrawIncomingTransmissionPanel(const app::EventLog& log, net::Clock::time_point now) {
+    DrawLogPanel("INCOMING TRANSMISSION", log, "AWAITING TRANSMISSION...", now);
 }
 
 } // namespace ui
