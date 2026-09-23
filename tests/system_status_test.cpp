@@ -16,4 +16,24 @@ TEST(SystemStatus, DefaultsToEmptyPlaceholders) {
     EXPECT_EQ(status.lastSync, net::Clock::time_point{});
 }
 
+// kCallsign and kNodeId are hardcoded placeholders (see their own comment), not yet wired into a
+// SystemStatus by any code in this repo -- these just guard the values themselves.
+TEST(SystemStatusConstants, KCallsignIsTheHamRadioNoCallsignPlaceholder) {
+    EXPECT_STREQ(app::kCallsign, "N0CALL");
+}
+
+TEST(SystemStatusConstants, KNodeIdIsSet) {
+    EXPECT_STREQ(app::kNodeId, "NODE-01");
+}
+
+// Both constants must convert cleanly to SystemStatus's std::string fields, since that is the
+// entire point of hardcoding them as placeholders for those fields.
+TEST(SystemStatusConstants, AssignCleanlyIntoASystemStatus) {
+    app::SystemStatus status;
+    status.callsign = app::kCallsign;
+    status.nodeId = app::kNodeId;
+    EXPECT_EQ(status.callsign, "N0CALL");
+    EXPECT_EQ(status.nodeId, "NODE-01");
+}
+
 } // namespace
