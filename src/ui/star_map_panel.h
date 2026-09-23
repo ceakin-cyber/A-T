@@ -10,9 +10,10 @@
 namespace ui {
 
 // Draws the star map panel: every currently visible star, plotted on a flat azimuth/altitude
-// grid (azimuth 0-360 left to right, altitude 0-90 bottom to top), sized and colored by
-// magnitude and B-V color index, with constellation stick-figure lines drawn beneath them. This
-// is a placeholder projection -- no dome/stereographic projection yet, a separate, later issue.
+// grid (azimuth 0-360 left to right, altitude 0-90 bottom to top), sized by magnitude, in the
+// panel's own phosphor green rather than each star's true spectral color, to match the rest of
+// this terminal-styled app, with constellation stick-figure lines drawn beneath them. This is a
+// placeholder projection -- no dome/stereographic projection yet, a separate, later issue.
 //
 // `visibleStars` and `constellationLines` must already have been computed for whatever time the
 // panel is currently showing (app::Effective(time, now)) -- this function only draws them and

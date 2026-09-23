@@ -105,10 +105,11 @@ void DrawStarMapPanel(const std::vector<core::VisibleStar>& visibleStars,
 
     for (const core::VisibleStar& visible : visibleStars) {
         const core::StarPointStyle pointStyle = core::MagnitudeToPointStyle(visible.star.magnitude);
-        const core::Rgb tint = core::ColorIndexToRgb(visible.star.colorIndex);
         const ImVec2 p = Project(visible.position, origin, size);
-        const ImU32 starColor =
-            ImGui::ColorConvertFloat4ToU32({tint.r, tint.g, tint.b, pointStyle.brightness});
+        // The panel's own phosphor green (the same color source as the border and constellation
+        // lines above), at magnitude-based brightness, not the star's true spectral color: this
+        // is a green terminal display, not a color photo of the sky.
+        const ImU32 starColor = ImGui::GetColorU32(ImGuiCol_Text, pointStyle.brightness);
         drawList->AddCircleFilled(p, pointStyle.radiusPx, starColor);
     }
 
