@@ -1,5 +1,6 @@
 #include "app/config.h"
 #include "app/satellite_roster.h"
+#include "core/constellation.h"
 #include "core/star_catalog.h"
 #include "core/time.h"
 #include "ui/bloom_chain.h"
@@ -119,6 +120,10 @@ int main(int /*argc*/, char** argv) {
         core::LoadStarCatalog(exeDir / "assets" / "stars" / "hygdata_mag6.csv");
     std::cout << "Star catalog: " << starCatalog.size() << " stars\n";
 
+    const std::vector<core::ConstellationLine> constellationLines =
+        core::LoadConstellationLines(exeDir / "assets" / "stars" / "constellation_lines.csv");
+    std::cout << "Constellation lines: " << constellationLines.size() << " segments\n";
+
     while (!glfwWindowShouldClose(window)) {
         const net::Clock::time_point now = std::chrono::system_clock::now();
         roster.Update(now);
@@ -128,6 +133,9 @@ int main(int /*argc*/, char** argv) {
         const double lst = core::LocalSiderealTime(julianDate, config.observer.longitude);
         const std::vector<core::VisibleStar> visibleStars =
             core::VisibleStars(starCatalog, config.observer.latitude, lst);
+        const std::vector<core::VisibleConstellationLine> visibleConstellationLines =
+            core::VisibleConstellationLines(starCatalog, constellationLines,
+                                            config.observer.latitude, lst);
 
         int width = 0;
         int height = 0;
@@ -149,7 +157,7 @@ int main(int /*argc*/, char** argv) {
         ui::DrawCrtTuningPanel(crtSettings, tuningOpen, headerHeight);
         ui::DrawPassPanel(selectedSatellite, selected.nextPass, config.observer, now, headerHeight);
         ui::DrawGroundTrackPanel(&selected, config.observer);
-        ui::DrawStarMapPanel(visibleStars);
+        ui::DrawStarMapPanel(visibleStars, visibleConstellationLines);
         ui::DrawEventLogPanel(selected.eventLog);
         ImGui::Render();
 

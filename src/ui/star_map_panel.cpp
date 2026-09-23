@@ -18,7 +18,8 @@ ImVec2 Project(const core::HorizontalPosition& position, ImVec2 origin, ImVec2 s
 
 } // namespace
 
-void DrawStarMapPanel(const std::vector<core::VisibleStar>& visibleStars) {
+void DrawStarMapPanel(const std::vector<core::VisibleStar>& visibleStars,
+                      const std::vector<core::VisibleConstellationLine>& constellationLines) {
     if (!ImGui::Begin("STAR MAP")) {
         ImGui::End();
         return;
@@ -35,8 +36,16 @@ void DrawStarMapPanel(const std::vector<core::VisibleStar>& visibleStars) {
     ImDrawList* drawList = ImGui::GetWindowDrawList();
 
     const ImU32 borderColor = ImGui::GetColorU32(ImGuiCol_Text, 0.6F);
+    const ImU32 lineColor = ImGui::GetColorU32(ImGuiCol_Text, 0.25F);
 
     drawList->AddRect(origin, {origin.x + size.x, origin.y + size.y}, borderColor);
+
+    // Drawn before the stars, so the star points sit on top of the lines rather than under them.
+    for (const core::VisibleConstellationLine& line : constellationLines) {
+        const ImVec2 a = Project(line.a, origin, size);
+        const ImVec2 b = Project(line.b, origin, size);
+        drawList->AddLine(a, b, lineColor);
+    }
 
     for (const core::VisibleStar& visible : visibleStars) {
         const core::StarPointStyle pointStyle = core::MagnitudeToPointStyle(visible.star.magnitude);

@@ -22,6 +22,7 @@ constexpr int kColumnCount = 37; // number of fields in kHeader
 // Column indices, matching kHeader exactly (checked by HeaderHasTheExpectedColumnCount below),
 // so a row can be built by index instead of by counting commas in a literal string.
 constexpr int kIdCol = 0;
+constexpr int kHipCol = 1;
 constexpr int kProperCol = 6;
 constexpr int kMagCol = 13;
 constexpr int kCiCol = 16;
@@ -40,11 +41,14 @@ std::string JoinCsvFields(const std::vector<std::string>& fields) {
 }
 
 // Builds a properly shaped data row: kColumnCount fields, all empty except the ones this parser
-// reads, set at their real column index. proper is quoted, since the real catalog quotes it.
+// reads, set at their real column index. proper is quoted, since the real catalog quotes it. hip
+// defaults to blank, matching every existing call site that doesn't care about it.
 std::string Row(const std::string& id, const std::string& rarad, const std::string& decrad,
-                const std::string& mag, const std::string& ci, const std::string& proper = "") {
+                const std::string& mag, const std::string& ci, const std::string& proper = "",
+                const std::string& hip = "") {
     std::vector<std::string> fields(kColumnCount);
     fields[kIdCol] = id;
+    fields[kHipCol] = hip;
     fields[kRaRadCol] = rarad;
     fields[kDecRadCol] = decrad;
     fields[kMagCol] = mag;
@@ -72,6 +76,7 @@ TEST(TestHelper, HeaderMatchesTheDeclaredColumnCountAndIndices) {
     }();
     ASSERT_EQ(columns.size(), static_cast<std::size_t>(kColumnCount));
     EXPECT_EQ(columns[kIdCol], "id");
+    EXPECT_EQ(columns[kHipCol], "hip");
     EXPECT_EQ(columns[kProperCol], "proper");
     EXPECT_EQ(columns[kMagCol], "mag");
     EXPECT_EQ(columns[kCiCol], "ci");
@@ -88,6 +93,21 @@ TEST(ParseStarCatalog, ReadsIdRaDecMagAndColorIndex) {
     EXPECT_DOUBLE_EQ(stars[0].decRad, -0.3);
     EXPECT_DOUBLE_EQ(stars[0].magnitude, 3.2);
     EXPECT_DOUBLE_EQ(stars[0].colorIndex, 0.65);
+}
+
+TEST(ParseStarCatalog, ReadsHip) {
+    const std::string text = std::string(kHeader) + "\n" +
+                             Row("42", "1.5", "-0.3", "3.2", "0.65", "", "32349");
+    const auto stars = core::ParseStarCatalog(text);
+    ASSERT_EQ(stars.size(), 1U);
+    EXPECT_EQ(stars[0].hip, 32349);
+}
+
+TEST(ParseStarCatalog, ABlankHipDefaultsToZero) {
+    const std::string text = std::string(kHeader) + "\n" + Row("1", "0.1", "0.1", "1.0", "0.1");
+    const auto stars = core::ParseStarCatalog(text);
+    ASSERT_EQ(stars.size(), 1U);
+    EXPECT_EQ(stars[0].hip, 0);
 }
 
 TEST(ParseStarCatalog, ReadsMultipleRowsInOrder) {
@@ -160,6 +180,11 @@ TEST(ParseStarCatalog, MissingARequiredColumnGivesAnEmptyList) {
     EXPECT_TRUE(core::ParseStarCatalog(noRarad).empty());
 }
 
+TEST(ParseStarCatalog, MissingTheHipColumnGivesAnEmptyList) {
+    const std::string noHip = "id,rarad,decrad,mag,ci\n1,0.1,0.1,1.0,0.1\n";
+    EXPECT_TRUE(core::ParseStarCatalog(noHip).empty());
+}
+
 TEST(ParseStarCatalog, HandlesCrlfLineEndings) {
     const std::string text =
         std::string(kHeader) + "\r\n" + Row("1", "0.1", "0.1", "1.0", "0.1") + "\r\n";
@@ -194,6 +219,13 @@ TEST(LoadStarCatalog, ReadsTheRealCommittedCatalog) {
     EXPECT_DOUBLE_EQ(sol->decRad, 0.0);
     EXPECT_DOUBLE_EQ(sol->magnitude, -26.7);
     EXPECT_DOUBLE_EQ(sol->colorIndex, 0.656);
+    EXPECT_EQ(sol->hip, 0); // the Sun has no Hipparcos number
+
+    // Tau Phe, id 88: known values straight from the catalog file, hip equal to id for this row.
+    const auto tauPhe =
+        std::find_if(stars.begin(), stars.end(), [](const core::Star& s) { return s.id == 88; });
+    ASSERT_NE(tauPhe, stars.end());
+    EXPECT_EQ(tauPhe->hip, 88);
 }
 
 // The three cases below have independently-verified altitudes (see tests/celestial_test.cpp for
