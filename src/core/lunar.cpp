@@ -147,4 +147,16 @@ std::optional<double> NextFullMoon(double fromJulianDate, double stepDays, doubl
     return NextExtreme(fromJulianDate, /*findMaximum=*/true, stepDays, maxDays);
 }
 
+const char* MoonPhaseName(double ageDays) {
+    static const char* const kNames[8] = {
+        "NEW MOON",       "WAXING CRESCENT", "FIRST QUARTER", "WAXING GIBBOUS",
+        "FULL MOON",      "WANING GIBBOUS",  "LAST QUARTER",  "WANING CRESCENT",
+    };
+    const double fraction = ageDays / SynodicMonthDays();
+    // +0.5 centers each name's window on its own eighth of the cycle rather than starting there;
+    // the modulo wraps the 15/16-to-1 sliver (just before the next new moon) back to index 0.
+    const int octant = static_cast<int>(std::floor(fraction * 8.0 + 0.5)) % 8;
+    return kNames[octant];
+}
+
 } // namespace core

@@ -205,4 +205,39 @@ TEST(NextFullMoon, NulloptWhenMaxDaysIsTooShortToReachIt) {
     EXPECT_EQ(core::NextFullMoon(2461305.5, /*stepDays=*/1.0, /*maxDays=*/2.0), std::nullopt);
 }
 
+TEST(MoonPhaseName, MatchesTheFourNamedMomentsExactly) {
+    const double month = core::SynodicMonthDays();
+    EXPECT_STREQ(core::MoonPhaseName(0.0), "NEW MOON");
+    EXPECT_STREQ(core::MoonPhaseName(month * 0.25), "FIRST QUARTER");
+    EXPECT_STREQ(core::MoonPhaseName(month * 0.50), "FULL MOON");
+    EXPECT_STREQ(core::MoonPhaseName(month * 0.75), "LAST QUARTER");
+}
+
+TEST(MoonPhaseName, MatchesTheFourInBetweenNamesAtTheirMidpoints) {
+    const double month = core::SynodicMonthDays();
+    EXPECT_STREQ(core::MoonPhaseName(month * 0.125), "WAXING CRESCENT");
+    EXPECT_STREQ(core::MoonPhaseName(month * 0.375), "WAXING GIBBOUS");
+    EXPECT_STREQ(core::MoonPhaseName(month * 0.625), "WANING GIBBOUS");
+    EXPECT_STREQ(core::MoonPhaseName(month * 0.875), "WANING CRESCENT");
+}
+
+TEST(MoonPhaseName, WrapsBackToNewMoonJustBeforeTheEndOfTheCycle) {
+    const double month = core::SynodicMonthDays();
+    EXPECT_STREQ(core::MoonPhaseName(month * 0.99), "NEW MOON");
+}
+
+TEST(MoonPhaseName, GoesThroughAllEightNamesInOrderOverOneCycle) {
+    static const char* const kExpectedOrder[8] = {
+        "NEW MOON",       "WAXING CRESCENT", "FIRST QUARTER", "WAXING GIBBOUS",
+        "FULL MOON",      "WANING GIBBOUS",  "LAST QUARTER",  "WANING CRESCENT",
+    };
+    const double month = core::SynodicMonthDays();
+    for (int i = 0; i < 8; ++i) {
+        // Each named window is centered at i/8 of the cycle (not spread across [i/8, (i+1)/8)),
+        // so i/8 itself -- not its midpoint -- is what falls inside window i.
+        const double age = month * static_cast<double>(i) / 8.0;
+        EXPECT_STREQ(core::MoonPhaseName(age), kExpectedOrder[i]) << "octant " << i;
+    }
+}
+
 } // namespace

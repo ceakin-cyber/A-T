@@ -30,4 +30,8 @@ std::string FormatCountdown(std::chrono::duration<double> duration);
 // cache after a failed fetch.
 std::string FormatNodeMode(net::TleSource source);
 
+// An illuminated fraction (0 to 1, see core::LunarPhase) as a whole-number percentage, for
+// example "78%".
+std::string FormatIlluminatedFraction(double fraction);
+
 } // namespace app

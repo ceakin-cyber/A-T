@@ -61,6 +61,13 @@ TEST(FormatElevation, OneDecimalAndUnit) {
     EXPECT_EQ(app::FormatElevation(kPi / 2.0), "90.0 DEG");
 }
 
+TEST(FormatIlluminatedFraction, WholeNumberPercent) {
+    EXPECT_EQ(app::FormatIlluminatedFraction(0.783), "78%");
+    EXPECT_EQ(app::FormatIlluminatedFraction(0.0), "0%");
+    EXPECT_EQ(app::FormatIlluminatedFraction(1.0), "100%");
+    EXPECT_EQ(app::FormatIlluminatedFraction(0.006), "1%"); // rounds, not truncates
+}
+
 TEST(FormatUtcTime, MonthDayAndTime) {
     // 2026-09-21 14:32:10 UTC is 1790001130 seconds after the Unix epoch.
     const std::chrono::system_clock::time_point t{std::chrono::seconds(1790001130)};

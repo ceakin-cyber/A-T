@@ -81,6 +81,10 @@ std::string FormatCountdown(std::chrono::duration<double> duration) {
     return buffer;
 }
 
+std::string FormatIlluminatedFraction(double fraction) {
+    return Format("%.0f%%", fraction * 100.0);
+}
+
 std::string FormatNodeMode(net::TleSource source) {
     switch (source) {
     case net::TleSource::Network:
