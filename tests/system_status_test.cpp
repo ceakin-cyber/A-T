@@ -1,5 +1,7 @@
 #include "app/system_status.h"
 
+#include "app/format.h"
+
 #include <chrono>
 #include <gtest/gtest.h>
 #include <optional>
@@ -12,12 +14,12 @@ Clock::time_point At(int secondsSinceEpoch) {
     return Clock::time_point(std::chrono::seconds(secondsSinceEpoch));
 }
 
-// mode is not wired to anything real yet (that starts in a later issue), so all this guards for
-// it is that a default-constructed SystemStatus leaves it empty, not silently pre-filled with
-// something that looks like real data. state and lastSync now have real starting values instead
-// (see the dedicated SystemState and LastSync tests below); lastSync's default, epoch, is its own
-// "never synced" -- the same value LastSync() folds an empty input down to for the caller.
-TEST(SystemStatus, DefaultsToUnwiredPlaceholdersExceptStateAndLastSync) {
+// callsign and nodeId are still blank by default -- SystemStatus itself never reaches for
+// kCallsign/kNodeId on its own, a caller assigns them (see AssignCleanlyIntoASystemStatus below).
+// mode, state and lastSync now all have real starting values instead: mode's default-constructed
+// blank is never actually shown, since SystemMode's own empty-input case returns "OFFLINE" (see
+// the dedicated SystemMode tests below), not blank.
+TEST(SystemStatus, CallsignAndNodeIdDefaultToBlankUntilAssigned) {
     const app::SystemStatus status;
     EXPECT_TRUE(status.callsign.empty());
     EXPECT_TRUE(status.nodeId.empty());
@@ -58,6 +60,45 @@ TEST(SystemState, ResultAssignsCleanlyIntoASystemStatus) {
     app::SystemStatus status;
     status.state = app::SystemState(true);
     EXPECT_EQ(status.state, "ONLINE");
+}
+
+TEST(SystemMode, EmptyInputIsOffline) {
+    EXPECT_EQ(app::SystemMode({}), "OFFLINE");
+}
+
+TEST(SystemMode, AllNetworkIsLive) {
+    EXPECT_EQ(app::SystemMode({net::TleSource::Network, net::TleSource::Network}), "LIVE");
+}
+
+TEST(SystemMode, OneFreshCacheAmongNetworkIsCached) {
+    EXPECT_EQ(app::SystemMode({net::TleSource::Network, net::TleSource::FreshCache}), "CACHED");
+}
+
+TEST(SystemMode, OneStaleCacheAmongTheRestIsLowVisibility) {
+    EXPECT_EQ(app::SystemMode({net::TleSource::Network, net::TleSource::FreshCache,
+                               net::TleSource::StaleCache}),
+             "LOW-VISIBILITY");
+}
+
+TEST(SystemMode, StaleCacheOutranksFreshCacheRegardlessOfOrder) {
+    EXPECT_EQ(app::SystemMode({net::TleSource::StaleCache, net::TleSource::FreshCache}),
+             "LOW-VISIBILITY");
+    EXPECT_EQ(app::SystemMode({net::TleSource::FreshCache, net::TleSource::StaleCache}),
+             "LOW-VISIBILITY");
+}
+
+TEST(SystemMode, ASingleSourceMatchesFormatNodeMode) {
+    EXPECT_EQ(app::SystemMode({net::TleSource::Network}), app::FormatNodeMode(net::TleSource::Network));
+    EXPECT_EQ(app::SystemMode({net::TleSource::FreshCache}),
+             app::FormatNodeMode(net::TleSource::FreshCache));
+    EXPECT_EQ(app::SystemMode({net::TleSource::StaleCache}),
+             app::FormatNodeMode(net::TleSource::StaleCache));
+}
+
+TEST(SystemMode, ResultAssignsCleanlyIntoASystemStatus) {
+    app::SystemStatus status;
+    status.mode = app::SystemMode({net::TleSource::Network});
+    EXPECT_EQ(status.mode, "LIVE");
 }
 
 TEST(LastSync, EmptyInputGivesNullopt) {
