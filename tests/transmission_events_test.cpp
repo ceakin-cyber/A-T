@@ -5,6 +5,12 @@
 
 namespace {
 
+using Clock = net::Clock;
+
+Clock::time_point At(int secondsSinceEpoch) {
+    return Clock::time_point(std::chrono::seconds(secondsSinceEpoch));
+}
+
 core::Pass MakePass(double riseJd) {
     core::Pass pass;
     pass.riseJd = riseJd;
@@ -40,6 +46,27 @@ TEST(PassChanged, OnlySetJdOrElevationDifferingWithTheSameRiseTimeIsUnchanged) {
     current.setJd = previous.setJd + 0.001;
     current.maxElevation = previous.maxElevation + 0.1;
     EXPECT_FALSE(app::PassChanged(previous, current));
+}
+
+TEST(IsIdle, NoLastEventIsIdle) {
+    EXPECT_TRUE(app::IsIdle(std::nullopt, At(1000)));
+}
+
+TEST(IsIdle, JustAfterAnEventIsNotIdle) {
+    EXPECT_FALSE(app::IsIdle(At(1000), At(1000)));
+}
+
+TEST(IsIdle, JustUnderTheThresholdIsNotIdle) {
+    const auto justUnder = At(1000) + app::kIdleThreshold - std::chrono::seconds(1);
+    EXPECT_FALSE(app::IsIdle(At(1000), justUnder));
+}
+
+TEST(IsIdle, ExactlyAtTheThresholdIsIdle) {
+    EXPECT_TRUE(app::IsIdle(At(1000), At(1000) + app::kIdleThreshold));
+}
+
+TEST(IsIdle, WellPastTheThresholdIsIdle) {
+    EXPECT_TRUE(app::IsIdle(At(1000), At(1000) + app::kIdleThreshold * 10));
 }
 
 } // namespace
