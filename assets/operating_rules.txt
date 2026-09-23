@@ -1,0 +1,16 @@
+# Operating rules for this station, shown as-is in the OPERATING RULES panel: one rule per line,
+# in the order they appear here. Blank lines and lines starting with '#' are ignored, so this
+# header does not itself show up as a rule.
+#
+# This file is copied next to the built executable (see assets/ in the top-level CMakeLists.txt),
+# not compiled into it, so a rule can be added, removed or reworded here and take effect the next
+# time the app starts -- no rebuild needed.
+
+VERIFY TLE FRESHNESS BEFORE EACH TRACKING SESSION
+MAINTAIN OBSERVER COORDINATES ACCURATE TO 0.01 DEGREES
+LOG ALL SIGNAL ACQUISITION AND LOSS EVENTS
+CONFIRM PROPAGATOR INITIALIZATION BEFORE REPORTING A PASS
+FLAG LOW-VISIBILITY MODE TO THE OPERATOR IMMEDIATELY
+DO NOT TRUST A TLE OLDER THAN SEVEN DAYS FOR PRECISION POINTING
+CROSS-CHECK LUNAR ALIGNMENT DATA BEFORE NIGHT OPERATIONS
+RESYNCHRONIZE SYSTEM CLOCK IF DRIFT EXCEEDS ONE SECOND
