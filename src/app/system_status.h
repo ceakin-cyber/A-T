@@ -21,4 +21,11 @@ struct SystemStatus {
     net::Clock::time_point lastSync{};
 };
 
+// A placeholder callsign and node id, until a config file (like app::kObserver before it) makes
+// them real; mode, state and lastSync are still wired up in later issues. "N0CALL" is the ham
+// radio convention for "no callsign set" -- not a real signal, and a clear placeholder to anyone
+// who recognizes it.
+inline constexpr const char* kCallsign = "N0CALL";
+inline constexpr const char* kNodeId = "NODE-01";
+
 } // namespace app
