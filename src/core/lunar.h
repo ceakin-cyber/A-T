@@ -50,4 +50,14 @@ std::optional<double> NextNewMoon(double fromJulianDate, double stepDays = 1.0,
 std::optional<double> NextFullMoon(double fromJulianDate, double stepDays = 1.0,
                                    double maxDays = 40.0);
 
+// The traditional name for the Moon's phase at a given age since new moon (see
+// LunarPhase::ageDays), one of the 8 standard divisions of the cycle: "NEW MOON", "WAXING
+// CRESCENT", "FIRST QUARTER", "WAXING GIBBOUS", "FULL MOON", "WANING GIBBOUS", "LAST QUARTER", or
+// "WANING CRESCENT". Each of the four named moments (new, first quarter, full, last quarter)
+// owns the eighth of the cycle centered on it; the four waxing/waning names fill the eighths in
+// between. Based on age, not illuminatedFraction, because illuminatedFraction alone cannot tell
+// a waxing phase from its waning mirror (both halves of the cycle pass through the same
+// illuminated fractions).
+const char* MoonPhaseName(double ageDays);
+
 } // namespace core

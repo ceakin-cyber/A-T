@@ -5,6 +5,7 @@
 #include "app/system_status.h"
 #include "app/transmission_events.h"
 #include "core/constellation.h"
+#include "core/lunar.h"
 #include "core/star_catalog.h"
 #include "core/time.h"
 #include "ui/bloom_chain.h"
@@ -15,6 +16,7 @@
 #include "ui/ground_track_panel.h"
 #include "ui/header.h"
 #include "ui/incoming_transmission_panel.h"
+#include "ui/lunar_alignment_panel.h"
 #include "ui/pass_panel.h"
 #include "ui/screen_pass.h"
 #include "ui/star_map_panel.h"
@@ -207,6 +209,15 @@ int main(int /*argc*/, char** argv) {
         ImGui_ImplGlfw_NewFrame();
         ImGui::NewFrame();
 
+        // The Moon's phase for right now -- always the real clock, unlike the star map's own
+        // time below, so it is not affected by that panel's time-travel controls. Cheap enough
+        // (a handful of trig calls, even with NextNewMoon/NextFullMoon's own search) to just
+        // recompute every frame, the same way the star map's own astronomy is below.
+        const double lunarJulianDate = core::JulianDateFromTimePoint(now);
+        const core::LunarPhase lunarPhase = core::LunarPhaseAt(lunarJulianDate);
+        const std::optional<double> nextNewMoonJd = core::NextNewMoon(lunarJulianDate);
+        const std::optional<double> nextFullMoonJd = core::NextFullMoon(lunarJulianDate);
+
         // The star map's own clock: normally `now`, but the panel's time controls (drawn below)
         // can detach and move it, which is why this has to run after NewFrame -- it needs this
         // frame's real elapsed time (DeltaTime) to advance playback.
@@ -238,6 +249,7 @@ int main(int /*argc*/, char** argv) {
                             showStarLabels, starMapTime, now);
         ui::DrawEventLogPanel(selected.eventLog);
         ui::DrawIncomingTransmissionPanel(transmissionLog, now);
+        ui::DrawLunarAlignmentPanel(lunarPhase, lunarJulianDate, nextNewMoonJd, nextFullMoonJd);
         ImGui::Render();
 
         // A minimised window has no pixels to draw into; skip drawing until it comes back.
