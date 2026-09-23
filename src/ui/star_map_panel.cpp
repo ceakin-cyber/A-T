@@ -1,5 +1,7 @@
 #include "ui/star_map_panel.h"
 
+#include "app/format.h"
+
 #include <imgui.h>
 #include <numbers>
 
@@ -16,17 +18,66 @@ ImVec2 Project(const core::HorizontalPosition& position, ImVec2 origin, ImVec2 s
             origin.y + static_cast<float>(1.0 - altDeg / 90.0) * size.y};
 }
 
+// The play speed slider's range: up to a simulated day per real second, in either direction.
+constexpr double kMinSpeed = -86400.0;
+constexpr double kMaxSpeed = 86400.0;
+
+// One jump button: steps `time` by `delta` (positive or negative) from its current effective
+// time when clicked.
+void JumpButton(const char* label, app::StarMapTime& time,
+                std::chrono::system_clock::time_point now, std::chrono::duration<double> delta) {
+    if (ImGui::Button(label)) {
+        app::Jump(time, now, delta);
+    }
+    ImGui::SameLine();
+}
+
+void DrawTimeControls(app::StarMapTime& time, std::chrono::system_clock::time_point now) {
+    using namespace std::chrono_literals;
+
+    JumpButton("-1D", time, now, -24h);
+    JumpButton("-1H", time, now, -1h);
+    JumpButton("-10M", time, now, -10min);
+
+    if (time.following) {
+        ImGui::TextDisabled("LIVE");
+    } else if (ImGui::Button("LIVE")) {
+        app::Resume(time);
+    }
+    ImGui::SameLine();
+
+    JumpButton("+10M", time, now, 10min);
+    JumpButton("+1H", time, now, 1h);
+    if (ImGui::Button("+1D")) {
+        app::Jump(time, now, 24h);
+    }
+
+    bool playing = time.playing;
+    if (ImGui::Checkbox(playing ? "PAUSE" : "PLAY", &playing)) {
+        app::SetPlaying(time, now, playing);
+    }
+    ImGui::SameLine();
+    ImGui::SetNextItemWidth(160.0F);
+    // A multiple of real time per second; 3600 plays an hour of sky per second.
+    ImGui::SliderScalar("SPEED", ImGuiDataType_Double, &time.speed, &kMinSpeed, &kMaxSpeed,
+                        "%.0fx");
+
+    ImGui::Text("SKY TIME: %s", app::FormatUtcTime(app::Effective(time, now)).c_str());
+}
+
 } // namespace
 
 void DrawStarMapPanel(const std::vector<core::VisibleStar>& visibleStars,
                       const std::vector<core::VisibleConstellationLine>& constellationLines,
-                      bool& showConstellationLines) {
+                      bool& showConstellationLines, app::StarMapTime& time,
+                      std::chrono::system_clock::time_point now) {
     if (!ImGui::Begin("STAR MAP")) {
         ImGui::End();
         return;
     }
 
     ImGui::Checkbox("CONSTELLATION LINES", &showConstellationLines);
+    DrawTimeControls(time, now);
 
     const ImVec2 avail = ImGui::GetContentRegionAvail();
     if (avail.x < 2.0F || avail.y < 2.0F) {
