@@ -43,6 +43,7 @@ void DrawDockSpace(float headerHeight) {
         ImGui::DockBuilderDockWindow("ISS TRACKER", left);
         ImGui::DockBuilderDockWindow("SATELLITES", left);
         ImGui::DockBuilderDockWindow("SYSTEM STATUS", left);
+        ImGui::DockBuilderDockWindow("SIGNAL QUALITY", left);
         ImGui::DockBuilderDockWindow("LUNAR ALIGNMENT", left);
         ImGui::DockBuilderDockWindow("OPERATING RULES", left);
         ImGui::DockBuilderDockWindow("NEXT PASS", right);

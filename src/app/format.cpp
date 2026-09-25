@@ -85,6 +85,10 @@ std::string FormatIlluminatedFraction(double fraction) {
     return Format("%.0f%%", fraction * 100.0);
 }
 
+std::string FormatKp(double kp) {
+    return Format("%.2f", kp);
+}
+
 std::string FormatNodeMode(net::TleSource source) {
     switch (source) {
     case net::TleSource::Network:

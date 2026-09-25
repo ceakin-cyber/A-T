@@ -9,6 +9,7 @@
 #include "core/lunar.h"
 #include "core/star_catalog.h"
 #include "core/time.h"
+#include "net/kp_index_source.h"
 #include "ui/bloom_chain.h"
 #include "ui/crt_tuning_panel.h"
 #include "ui/dockspace.h"
@@ -21,6 +22,7 @@
 #include "ui/operating_rules_panel.h"
 #include "ui/pass_panel.h"
 #include "ui/screen_pass.h"
+#include "ui/signal_quality_panel.h"
 #include "ui/star_map_panel.h"
 #include "ui/style.h"
 #include "ui/system_status_panel.h"
@@ -121,6 +123,11 @@ int main(int /*argc*/, char** argv) {
     systemStatus.lastSync = app::LastSync(fetchTimes).value_or(net::Clock::time_point{});
     std::cout << "System status: " << systemStatus.state << ", mode " << systemStatus.mode
               << '\n';
+
+    // The real Kp index behind the SIGNAL QUALITY panel, loaded once at startup like the TLEs
+    // above: from a fresh cache if there is one, else NOAA, else a stale cache (see
+    // net::LoadKpIndex). Nullopt only if all three fail; the panel then shows NO DATA.
+    const std::optional<net::LoadedKp> kpIndex = net::LoadKpIndex();
 
     IMGUI_CHECKVERSION();
     ImGui::CreateContext();
@@ -254,6 +261,7 @@ int main(int /*argc*/, char** argv) {
 
         ui::DrawWatchlistPanel(roster);
         ui::DrawSystemStatusPanel(systemStatus, headerHeight);
+        ui::DrawSignalQualityPanel(kpIndex);
         ui::DrawTrackerPanel(selectedSatellite, selected.position, now, headerHeight);
         if (ImGui::IsKeyPressed(ImGuiKey_F2, false)) {
             tuningOpen = !tuningOpen;

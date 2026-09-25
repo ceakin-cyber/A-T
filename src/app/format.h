@@ -34,4 +34,8 @@ std::string FormatNodeMode(net::TleSource source);
 // example "78%".
 std::string FormatIlluminatedFraction(double fraction);
 
+// A planetary Kp index reading (0 to 9, in thirds; see net::ParseMostRecentKp) to two decimal
+// places, for example "2.33".
+std::string FormatKp(double kp);
+
 } // namespace app

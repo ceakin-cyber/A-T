@@ -12,4 +12,16 @@ SignalQuality ClassifyKp(double kp) {
     return SignalQuality::Disrupted;
 }
 
+const char* ToString(SignalQuality quality) {
+    switch (quality) {
+    case SignalQuality::Stable:
+        return "STABLE";
+    case SignalQuality::Degraded:
+        return "DEGRADED";
+    case SignalQuality::Disrupted:
+        return "DISRUPTED";
+    }
+    return "UNKNOWN";
+}
+
 } // namespace app
