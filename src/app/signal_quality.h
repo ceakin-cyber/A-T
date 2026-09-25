@@ -14,4 +14,7 @@ enum class SignalQuality {
 // inclusive, Disrupted above 6.
 SignalQuality ClassifyKp(double kp);
 
+// The tier's display name for the SIGNAL QUALITY panel: "STABLE", "DEGRADED" or "DISRUPTED".
+const char* ToString(SignalQuality quality);
+
 } // namespace app

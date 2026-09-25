@@ -52,4 +52,10 @@ TEST(ClassifyKp, DisruptedAtTheStormsPeak) {
     EXPECT_EQ(app::ClassifyKp(8.667), app::SignalQuality::Disrupted);
 }
 
+TEST(SignalQualityToString, NamesEachTier) {
+    EXPECT_STREQ(app::ToString(app::SignalQuality::Stable), "STABLE");
+    EXPECT_STREQ(app::ToString(app::SignalQuality::Degraded), "DEGRADED");
+    EXPECT_STREQ(app::ToString(app::SignalQuality::Disrupted), "DISRUPTED");
+}
+
 } // namespace

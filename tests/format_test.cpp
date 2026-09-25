@@ -68,6 +68,13 @@ TEST(FormatIlluminatedFraction, WholeNumberPercent) {
     EXPECT_EQ(app::FormatIlluminatedFraction(0.006), "1%"); // rounds, not truncates
 }
 
+TEST(FormatKp, TwoDecimalPlaces) {
+    EXPECT_EQ(app::FormatKp(2.33), "2.33");
+    EXPECT_EQ(app::FormatKp(0.0), "0.00");
+    EXPECT_EQ(app::FormatKp(9.0), "9.00");
+    EXPECT_EQ(app::FormatKp(8.667), "8.67"); // a real reading in thirds, rounded
+}
+
 TEST(FormatUtcTime, MonthDayAndTime) {
     // 2026-09-21 14:32:10 UTC is 1790001130 seconds after the Unix epoch.
     const std::chrono::system_clock::time_point t{std::chrono::seconds(1790001130)};
