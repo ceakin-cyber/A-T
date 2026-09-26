@@ -6,6 +6,7 @@
 #include "app/system_status.h"
 #include "app/transmission_events.h"
 #include "core/constellation.h"
+#include "core/land.h"
 #include "core/lunar.h"
 #include "core/star_catalog.h"
 #include "core/time.h"
@@ -194,6 +195,12 @@ int main(int /*argc*/, char** argv) {
         core::LoadConstellationLines(exeDir / "assets" / "stars" / "constellation_lines.csv");
     std::cout << "Constellation lines: " << constellationLines.size() << " segments\n";
 
+    // The GROUND TRACK map's continents, cut into triangles once here (after ImGui is set up,
+    // which the triangulation borrows) so the map can fill them in cheaply every frame.
+    const ui::LandMesh landMesh =
+        ui::BuildLandMesh(core::LoadLandOutlines(exeDir / "assets" / "world" / "land_110m.txt"));
+    std::cout << "Land outlines: " << landMesh.pieces.size() << " loaded\n";
+
     // Loaded once for the static OPERATING RULES panel; edit the file and restart to change it
     // (see assets/operating_rules.txt), no in-app reload.
     const std::vector<std::string> operatingRules =
@@ -268,7 +275,7 @@ int main(int /*argc*/, char** argv) {
         }
         ui::DrawCrtTuningPanel(crtSettings, tuningOpen, headerHeight);
         ui::DrawPassPanel(selectedSatellite, selected.nextPass, config.observer, now, headerHeight);
-        ui::DrawGroundTrackPanel(&selected, config.observer);
+        ui::DrawGroundTrackPanel(&selected, config.observer, landMesh, now);
         ui::DrawStarMapPanel(visibleStars, visibleConstellationLines, showConstellationLines,
                             showStarLabels, starMapTime, now);
         ui::DrawEventLogPanel(selected.eventLog);

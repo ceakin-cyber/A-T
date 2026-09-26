@@ -58,6 +58,23 @@ std::string FormatUtcTime(std::chrono::system_clock::time_point time) {
     return buffer;
 }
 
+std::string FormatUtcClock(std::chrono::system_clock::time_point time,
+                           std::chrono::system_clock::time_point now) {
+    const auto toParts = [](std::chrono::system_clock::time_point t) {
+        const std::time_t seconds = std::chrono::system_clock::to_time_t(
+            std::chrono::time_point_cast<std::chrono::seconds>(t));
+        std::tm parts{};
+        gmtime_r(&seconds, &parts);
+        return parts;
+    };
+    const std::tm when = toParts(time);
+    const std::tm today = toParts(now);
+    const bool sameDay = when.tm_year == today.tm_year && when.tm_yday == today.tm_yday;
+    char buffer[32];
+    std::strftime(buffer, sizeof buffer, sameDay ? "%H:%M UTC" : "%m-%d %H:%M UTC", &when);
+    return buffer;
+}
+
 std::string FormatCountdown(std::chrono::duration<double> duration) {
     const std::int64_t total = static_cast<std::int64_t>(std::max(0.0, duration.count()));
     const std::int64_t days = total / 86400;
