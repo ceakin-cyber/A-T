@@ -11,13 +11,13 @@ namespace ui {
 namespace {
 
 // "LAST SYNC" for a station that has never synced (SystemStatus::lastSync at its own epoch
-// default): app::FormatUtcTime would otherwise print that as a real-looking (but meaningless)
+// default): app::FormatTime would otherwise print that as a real-looking (but meaningless)
 // date, "01-01 00:00:00".
 void LastSyncLabelValueRow(net::Clock::time_point lastSync) {
     if (lastSync == net::Clock::time_point{}) {
         LabelValueRow("LAST SYNC", "NEVER");
     } else {
-        LabelValueRow("LAST SYNC", app::FormatUtcTime(lastSync));
+        LabelValueRow("LAST SYNC", app::FormatTime(lastSync));
     }
 }
 

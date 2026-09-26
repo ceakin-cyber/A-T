@@ -63,6 +63,7 @@ Config ParseConfig(const std::string& text) {
     double altKm = defaults.observer.altitudeKm;
     std::vector<WatchEntry> watchlist;
     bool watchlistStarted = false;
+    std::string timeZone = defaults.timeZone;
 
     std::istringstream stream(text);
     std::string rawLine;
@@ -102,6 +103,10 @@ Config ParseConfig(const std::string& text) {
             continue;
         }
         const auto& [key, valueText] = *assignment;
+        if (key == "time_zone") {
+            timeZone = std::string(valueText);
+            continue;
+        }
         const std::optional<double> value = ParseDouble(valueText);
         if (!value) {
             std::cerr << "Config line " << lineNumber << ": " << key
@@ -124,6 +129,7 @@ Config ParseConfig(const std::string& text) {
     Config config;
     config.observer = core::GeodeticFromDegrees(latDeg, lonDeg, altKm);
     config.watchlist = watchlistStarted ? watchlist : defaults.watchlist;
+    config.timeZone = timeZone;
     return config;
 }
 

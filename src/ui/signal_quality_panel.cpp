@@ -41,9 +41,9 @@ void DrawSignalQualityPanel(const std::optional<net::LoadedKp>& kp) {
             // same way the header flags a stale TLE: the tier above may no longer be current.
             if (kp->source == net::KpSource::StaleCache) {
                 const ImVec4 color = WarningColor();
-                LabelValueRow("UPDATED", app::FormatUtcTime(kp->fetchedAt), &color);
+                LabelValueRow("UPDATED", app::FormatTime(kp->fetchedAt), &color);
             } else {
-                LabelValueRow("UPDATED", app::FormatUtcTime(kp->fetchedAt));
+                LabelValueRow("UPDATED", app::FormatTime(kp->fetchedAt));
             }
 
             ImGui::EndTable();

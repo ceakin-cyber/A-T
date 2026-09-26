@@ -75,34 +75,34 @@ TEST(FormatKp, TwoDecimalPlaces) {
     EXPECT_EQ(app::FormatKp(8.667), "8.67"); // a real reading in thirds, rounded
 }
 
-TEST(FormatUtcTime, MonthDayAndTime) {
+TEST(FormatTime, MonthDayAndTime) {
     // 2026-09-21 14:32:10 UTC is 1790001130 seconds after the Unix epoch.
     const std::chrono::system_clock::time_point t{std::chrono::seconds(1790001130)};
-    EXPECT_EQ(app::FormatUtcTime(t), "09-21 14:32:10");
+    EXPECT_EQ(app::FormatTime(t), "09-21 14:32:10");
 }
 
-TEST(FormatUtcTime, PadsSingleDigitsAndIgnoresFractionalSeconds) {
+TEST(FormatTime, PadsSingleDigitsAndIgnoresFractionalSeconds) {
     // 2026-01-05 03:04:05.9 UTC.
     const std::chrono::system_clock::time_point t{std::chrono::milliseconds(1767582245900)};
-    EXPECT_EQ(app::FormatUtcTime(t), "01-05 03:04:05");
+    EXPECT_EQ(app::FormatTime(t), "01-05 03:04:05");
 }
 
-TEST(FormatUtcTime, TheUnixEpoch) {
-    EXPECT_EQ(app::FormatUtcTime(std::chrono::system_clock::time_point{}), "01-01 00:00:00");
+TEST(FormatTime, TheUnixEpoch) {
+    EXPECT_EQ(app::FormatTime(std::chrono::system_clock::time_point{}), "01-01 00:00:00");
 }
 
-TEST(FormatUtcClock, HoursAndMinutesOnTheSameDay) {
+TEST(FormatClock, HoursAndMinutesOnTheSameDay) {
     // 2026-09-21 14:32:10 UTC, seen from 01:00:00 the same day.
     const std::chrono::system_clock::time_point t{std::chrono::seconds(1790001130)};
     const std::chrono::system_clock::time_point now{std::chrono::seconds(1789952400)};
-    EXPECT_EQ(app::FormatUtcClock(t, now), "14:32 UTC");
+    EXPECT_EQ(app::FormatClock(t, now), "14:32 UTC");
 }
 
-TEST(FormatUtcClock, AddsTheDateOnAnotherDay) {
+TEST(FormatClock, AddsTheDateOnAnotherDay) {
     // The same time, seen from 23:59:59 the day before.
     const std::chrono::system_clock::time_point t{std::chrono::seconds(1790001130)};
     const std::chrono::system_clock::time_point now{std::chrono::seconds(1789948799)};
-    EXPECT_EQ(app::FormatUtcClock(t, now), "09-21 14:32 UTC");
+    EXPECT_EQ(app::FormatClock(t, now), "09-21 14:32 UTC");
 }
 
 TEST(FormatCountdown, SecondsOnly) {

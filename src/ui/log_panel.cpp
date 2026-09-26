@@ -38,7 +38,7 @@ void DrawLogPanel(const char* title, const app::EventLog& log, const char* place
 
             ImGui::TableNextRow();
             ImGui::TableNextColumn();
-            ImGui::TextDisabled("%s", app::FormatUtcTime(entry.time).c_str());
+            ImGui::TextDisabled("%s", app::FormatTime(entry.time).c_str());
             ImGui::TableNextColumn();
             if (typingEffectNow) {
                 const std::string visible = app::TypingEffect(

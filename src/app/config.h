@@ -20,6 +20,10 @@ struct Config {
     // Defaults to the ISS. Only watchlist.front() is tracked today; more entries are for when
     // the app can track several satellites at once.
     std::vector<WatchEntry> watchlist = {{25544, "ISS (ZARYA)"}};
+    // The zone times are shown in: "UTC", "LOCAL", or an IANA name such as "America/New_York"
+    // (see app::SetDisplayTimeZone). Not checked here; an unknown name is reported, and UTC
+    // kept, when the app applies it.
+    std::string timeZone = "UTC";
 };
 
 // Per-user config directory: $XDG_CONFIG_HOME/a-t, else ~/.config/a-t.
@@ -30,6 +34,7 @@ std::filesystem::path DefaultConfigDir();
 //   observer_lon_deg = 0.0
 //   observer_alt_km = 0.062
 //   watch 25544 ISS (ZARYA)
+//   time_zone = America/New_York
 // Blank lines and lines starting with '#' are ignored. Any field or the whole watchlist may be
 // left out, in which case that part of the default Config is kept. A malformed line (not one of
 // the forms above, or a number that fails to parse) is skipped, with a reason printed to stderr;

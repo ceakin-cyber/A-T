@@ -51,7 +51,7 @@ void DrawRelayQueuePanel(const app::RelayItem& carrierPing, const app::RelayQueu
         } else {
             const std::string next = app::FormatCountdown(queue.NextAt() - now);
             const std::string last =
-                queue.LastSentAt() ? app::FormatUtcClock(*queue.LastSentAt(), now) : "NONE YET";
+                queue.LastSentAt() ? app::FormatClock(*queue.LastSentAt(), now) : "NONE YET";
             ImGui::TextDisabled("NEXT SEND IN %s   LAST SENT %s", next.c_str(), last.c_str());
         }
 
