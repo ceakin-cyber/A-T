@@ -1,6 +1,7 @@
 #include "app/config.h"
 #include "app/event_log.h"
 #include "app/operating_rules.h"
+#include "app/relay_queue.h"
 #include "app/satellite_roster.h"
 #include "app/star_map_time.h"
 #include "app/system_status.h"
@@ -22,6 +23,7 @@
 #include "ui/lunar_alignment_panel.h"
 #include "ui/operating_rules_panel.h"
 #include "ui/pass_panel.h"
+#include "ui/relay_queue_panel.h"
 #include "ui/screen_pass.h"
 #include "ui/signal_quality_panel.h"
 #include "ui/star_map_panel.h"
@@ -125,6 +127,16 @@ int main(int /*argc*/, char** argv) {
     std::cout << "System status: " << systemStatus.state << ", mode " << systemStatus.mode
               << '\n';
 
+    // The RELAY QUEUE's CARRIER PING, from how each watched satellite's TLE load went: computed
+    // once here for the same reason as the system status above.
+    std::vector<std::optional<net::TleSource>> tleResults;
+    for (std::size_t i = 0; i < roster.Size(); ++i) {
+        const app::WatchedSatellite& watched = roster.At(i);
+        tleResults.push_back(watched.satellite ? std::optional(watched.satellite->source)
+                                               : std::nullopt);
+    }
+    const app::RelayItem carrierPing = app::CarrierPing(tleResults);
+
     // The real Kp index behind the SIGNAL QUALITY panel, loaded once at startup like the TLEs
     // above: from a fresh cache if there is one, else NOAA, else a stale cache (see
     // net::LoadKpIndex). Nullopt only if all three fail; the panel then shows NO DATA.
@@ -207,6 +219,11 @@ int main(int /*argc*/, char** argv) {
         app::LoadOperatingRules(exeDir / "assets" / "operating_rules.txt");
     std::cout << "Operating rules: " << operatingRules.size() << " loaded\n";
 
+    // The station's messages home, sent one at a time on a schedule and shown in the RELAY QUEUE
+    // panel; edit assets/relay_messages.txt and restart to change them.
+    app::RelayQueue relayQueue(app::LoadRelayMessages(exeDir / "assets" / "relay_messages.txt"),
+                               startupTime);
+
     // Built once and reused every frame, rather than re-indexing the whole catalog each time.
     const core::StarHipIndex starHipIndex(starCatalog);
 
@@ -229,6 +246,8 @@ int main(int /*argc*/, char** argv) {
                 }
             }
         }
+
+        relayQueue.Update(now);
 
         // A fallback heartbeat once the feed above has gone quiet for a while (see IsIdle's own
         // comment on why this does not repeat every frame once logged).
@@ -280,6 +299,7 @@ int main(int /*argc*/, char** argv) {
                             showStarLabels, starMapTime, now);
         ui::DrawEventLogPanel(selected.eventLog);
         ui::DrawIncomingTransmissionPanel(transmissionLog, now);
+        ui::DrawRelayQueuePanel(carrierPing, relayQueue, now);
         if (ui::DrawLunarAlignmentPanel(lunarPhase, lunarJulianDate, nextNewMoonJd, nextFullMoonJd,
                                         lunarRefreshedAt, config.observer.latitude)) {
             refreshLunarSnapshot(now);
