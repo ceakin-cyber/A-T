@@ -281,7 +281,7 @@ int main(int /*argc*/, char** argv) {
         ui::DrawEventLogPanel(selected.eventLog);
         ui::DrawIncomingTransmissionPanel(transmissionLog, now);
         if (ui::DrawLunarAlignmentPanel(lunarPhase, lunarJulianDate, nextNewMoonJd, nextFullMoonJd,
-                                        lunarRefreshedAt)) {
+                                        lunarRefreshedAt, config.observer.latitude)) {
             refreshLunarSnapshot(now);
         }
         ui::DrawOperatingRulesPanel(operatingRules);

@@ -7,10 +7,11 @@
 
 namespace ui {
 
-// Draws the lunar alignment panel: the Moon's phase name, illuminated fraction, age since the
-// last new moon, and time until whichever of the next new/full moon comes first, as label/value
-// rows in the same style as every other panel (see ui::LabelValueRow), plus when that data was
-// last refreshed.
+// Draws the lunar alignment panel: a picture of the Moon in its current phase -- lit on the side
+// it appears lit from the observer's hemisphere (`observerLatitudeRad`; see app::MoonLitOnRight)
+// -- beside the Moon's phase name, illuminated fraction, age since the last new moon, and time
+// until whichever of the next new/full moon comes first, as label/value rows in the same style as
+// every other panel (see ui::LabelValueRow), plus when that data was last refreshed.
 //
 // These values are a manual snapshot, not continuously live: `phase`, `julianDateAsOf` (the
 // moment `phase` was computed for, and what the countdown to `nextNewMoonJd`/`nextFullMoonJd` is
@@ -23,6 +24,6 @@ namespace ui {
 bool DrawLunarAlignmentPanel(const core::LunarPhase& phase, double julianDateAsOf,
                             std::optional<double> nextNewMoonJd,
                             std::optional<double> nextFullMoonJd,
-                            net::Clock::time_point refreshedAt);
+                            net::Clock::time_point refreshedAt, double observerLatitudeRad);
 
 } // namespace ui
