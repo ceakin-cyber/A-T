@@ -68,7 +68,7 @@ target_include_directories(imgui SYSTEM PUBLIC ${imgui_SOURCE_DIR} ${imgui_SOURC
 target_link_libraries(imgui PUBLIC glfw)
 
 # Astronomy and orbit code. Must not depend on the UI or network code.
-add_library(core STATIC src/core/celestial.cpp src/core/constellation.cpp src/core/frames.cpp src/core/geodetic.cpp src/core/kepler.cpp src/core/lunar.cpp src/core/passes.cpp src/core/sgp4.cpp src/core/star_catalog.cpp src/core/time.cpp src/core/tle.cpp src/core/topocentric.cpp)
+add_library(core STATIC src/core/celestial.cpp src/core/constellation.cpp src/core/frames.cpp src/core/geodetic.cpp src/core/kepler.cpp src/core/land.cpp src/core/lunar.cpp src/core/passes.cpp src/core/sgp4.cpp src/core/star_catalog.cpp src/core/sun.cpp src/core/time.cpp src/core/tle.cpp src/core/topocentric.cpp)
 target_include_directories(core PUBLIC src)
 
 # Network access and the on-disk TLE cache.
@@ -77,11 +77,11 @@ target_include_directories(net PUBLIC src)
 target_link_libraries(net PRIVATE cpr::cpr)
 
 # Glue between the network layer and the astronomy code.
-add_library(app STATIC src/app/config.cpp src/app/event_log.cpp src/app/format.cpp src/app/ground_track.cpp src/app/operating_rules.cpp src/app/pass_planner.cpp src/app/satellite_position.cpp src/app/relay_queue.cpp src/app/satellite_roster.cpp src/app/signal_quality.cpp src/app/star_map_time.cpp src/app/system_status.cpp src/app/tle_age.cpp src/app/tracked_satellite.cpp src/app/transmission_events.cpp src/app/typing_effect.cpp)
+add_library(app STATIC src/app/config.cpp src/app/event_log.cpp src/app/format.cpp src/app/ground_track.cpp src/app/observing.cpp src/app/operating_rules.cpp src/app/pass_planner.cpp src/app/satellite_position.cpp src/app/relay_queue.cpp src/app/satellite_roster.cpp src/app/signal_quality.cpp src/app/star_map_time.cpp src/app/system_status.cpp src/app/tle_age.cpp src/app/tracked_satellite.cpp src/app/transmission_events.cpp src/app/typing_effect.cpp)
 target_include_directories(app PUBLIC src)
 target_link_libraries(app PUBLIC core net)
 
-add_executable(a-t src/main.cpp src/ui/bloom_chain.cpp src/ui/crt_tuning_panel.cpp src/ui/dockspace.cpp src/ui/event_log_panel.cpp src/ui/framebuffer.cpp src/ui/fullscreen_triangle.cpp src/ui/ground_track_panel.cpp src/ui/header.cpp src/ui/incoming_transmission_panel.cpp src/ui/log_panel.cpp src/ui/lunar_alignment_panel.cpp src/ui/operating_rules_panel.cpp src/ui/pass_panel.cpp src/ui/rows.cpp src/ui/screen_pass.cpp src/ui/shader.cpp src/ui/signal_quality_panel.cpp src/ui/star_map_panel.cpp src/ui/style.cpp src/ui/system_status_panel.cpp src/ui/tracker_panel.cpp src/ui/watchlist_panel.cpp)
+add_executable(a-t src/main.cpp src/ui/bloom_chain.cpp src/ui/crt_tuning_panel.cpp src/ui/dockspace.cpp src/ui/event_log_panel.cpp src/ui/framebuffer.cpp src/ui/fullscreen_triangle.cpp src/ui/ground_track_panel.cpp src/ui/header.cpp src/ui/incoming_transmission_panel.cpp src/ui/land_mesh.cpp src/ui/log_panel.cpp src/ui/lunar_alignment_panel.cpp src/ui/operating_rules_panel.cpp src/ui/pass_panel.cpp src/ui/rows.cpp src/ui/screen_pass.cpp src/ui/shader.cpp src/ui/signal_quality_panel.cpp src/ui/star_map_panel.cpp src/ui/style.cpp src/ui/system_status_panel.cpp src/ui/tracker_panel.cpp src/ui/watchlist_panel.cpp)
 target_include_directories(a-t PRIVATE src)
 target_link_libraries(a-t PRIVATE app core net glfw glad imgui)
 # glad provides the GL headers; keep GLFW from including its own.
@@ -120,7 +120,7 @@ set(CPACK_COMPONENT_INCLUDE_TOPLEVEL_DIRECTORY ON)
 include(CPack)
 
 enable_testing()
-add_executable(tests tests/celestial_test.cpp tests/config_test.cpp tests/constellation_test.cpp tests/event_log_test.cpp tests/star_catalog_test.cpp tests/ground_track_test.cpp tests/satellite_roster_test.cpp tests/pass_planner_test.cpp tests/passes_test.cpp tests/observer_test.cpp tests/format_test.cpp tests/tle_age_test.cpp tests/satellite_position_test.cpp tests/star_map_time_test.cpp tests/system_status_test.cpp tests/transmission_events_test.cpp tests/typing_effect_test.cpp tests/frames_test.cpp tests/geodetic_test.cpp tests/kepler_test.cpp tests/kp_index_cache_test.cpp tests/kp_index_fetch_test.cpp tests/kp_index_source_test.cpp tests/lunar_test.cpp tests/operating_rules_test.cpp tests/relay_queue_test.cpp tests/sgp4_init_test.cpp tests/sgp4_propagate_test.cpp tests/sgp4_secular_test.cpp tests/signal_quality_test.cpp tests/time_test.cpp tests/tle_test.cpp tests/topocentric_test.cpp tests/tracked_satellite_test.cpp tests/tle_cache_test.cpp tests/tle_source_test.cpp)
+add_executable(tests tests/celestial_test.cpp tests/config_test.cpp tests/constellation_test.cpp tests/event_log_test.cpp tests/star_catalog_test.cpp tests/ground_track_test.cpp tests/satellite_roster_test.cpp tests/pass_planner_test.cpp tests/passes_test.cpp tests/observer_test.cpp tests/observing_test.cpp tests/format_test.cpp tests/tle_age_test.cpp tests/satellite_position_test.cpp tests/star_map_time_test.cpp tests/sun_test.cpp tests/system_status_test.cpp tests/transmission_events_test.cpp tests/typing_effect_test.cpp tests/frames_test.cpp tests/geodetic_test.cpp tests/kepler_test.cpp tests/kp_index_cache_test.cpp tests/land_test.cpp tests/kp_index_fetch_test.cpp tests/kp_index_source_test.cpp tests/lunar_test.cpp tests/operating_rules_test.cpp tests/relay_queue_test.cpp tests/sgp4_init_test.cpp tests/sgp4_propagate_test.cpp tests/sgp4_secular_test.cpp tests/signal_quality_test.cpp tests/time_test.cpp tests/tle_test.cpp tests/topocentric_test.cpp tests/tracked_satellite_test.cpp tests/tle_cache_test.cpp tests/tle_source_test.cpp)
 target_link_libraries(tests PRIVATE app core net GTest::gtest_main)
 include(GoogleTest)
 gtest_discover_tests(tests)
