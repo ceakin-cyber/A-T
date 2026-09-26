@@ -21,7 +21,8 @@ A retro terminal-style satellite tracker, written in C++20 with OpenGL and Dear 
 - **Dockable dashboard:** the panels above are arranged with a real ImGui dockspace, so they can be dragged, resized and rearranged; your layout is remembered between runs.
 - **CRT post-processing:** the picture is rendered to a texture and passed through scanline, glow and vignette shaders. Press **F2** in the running app to tune all three live and see the frame cost.
 - **Orbital data:** the TLE comes from [Celestrak](https://celestrak.org/) and is cached on disk for two hours. If the network fails, the app falls back to a stale cached copy. With no network and no cache it still starts, and the panels show `NO DATA`.
-- **Config file:** the observer's location and the watchlist are read from a plain text config file (`$XDG_CONFIG_HOME/a-t/config.txt`, or `~/.config/a-t/config.txt`) at startup, falling back to sane defaults (Greenwich, the ISS) if it is missing or a line in it can't be parsed.
+- **Config file:** the observer's location, the watchlist and the time zone are read from a plain text config file (`$XDG_CONFIG_HOME/a-t/config.txt`, or `~/.config/a-t/config.txt`) at startup, falling back to sane defaults (Greenwich, the ISS, UTC) if it is missing or a line in it can't be parsed.
+- **Time zone:** every time on screen is shown in UTC by default, or in the zone set by the config file's `time_zone` line: `LOCAL` for the computer's own zone, or any IANA name such as `time_zone = America/New_York` (daylight saving time included). The ZONE list in the header bar switches it while the app is running.
 - **Terminal look:** the VT323 pixel font, a green phosphor palette, and flat, square, minimal-border windows throughout.
 
 ## Planned

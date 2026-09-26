@@ -1,6 +1,7 @@
 #include "ui/pass_panel.h"
 
 #include "app/format.h"
+#include "app/time_zone.h"
 #include "core/time.h"
 #include "ui/rows.h"
 
@@ -46,10 +47,12 @@ void DrawPassPanel(const app::TrackedSatellite* satellite, const std::optional<c
                     LabelValueRow("STATUS",
                                   "RISES IN " + app::FormatCountdown(Seconds(rise - now)));
                 }
-                LabelValueRow("RISE (UTC)", app::FormatUtcTime(rise));
-                LabelValueRow("MAX (UTC)", app::FormatUtcTime(peak));
+                // Labeled with the display zone's own short name, e.g. "RISE (EDT)".
+                const std::string zone = " (" + app::DisplayTimeZoneAbbreviation(rise) + ")";
+                LabelValueRow(("RISE" + zone).c_str(), app::FormatTime(rise));
+                LabelValueRow(("MAX" + zone).c_str(), app::FormatTime(peak));
                 LabelValueRow("MAX ELEV", app::FormatElevation(pass->maxElevation));
-                LabelValueRow("SET (UTC)", app::FormatUtcTime(set));
+                LabelValueRow(("SET" + zone).c_str(), app::FormatTime(set));
                 LabelValueRow("DURATION", app::FormatCountdown(Seconds(set - rise)));
             }
             ImGui::EndTable();

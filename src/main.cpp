@@ -4,6 +4,7 @@
 #include "app/received_transmissions.h"
 #include "app/relay_queue.h"
 #include "app/satellite_roster.h"
+#include "app/time_zone.h"
 #include "app/star_map_time.h"
 #include "app/system_status.h"
 #include "app/transmission_events.h"
@@ -80,6 +81,10 @@ int main(int /*argc*/, char** argv) {
     std::cout << "OpenGL " << glGetString(GL_VERSION) << '\n';
 
     const app::Config config = app::LoadConfig(app::DefaultConfigDir() / "config.txt");
+    if (!app::SetDisplayTimeZone(config.timeZone)) {
+        std::cerr << "Unknown time zone \"" << config.timeZone
+                  << "\" in config; showing times in UTC\n";
+    }
 
     // Every watchlist entry is loaded and kept live; the SATELLITES panel selects which one the
     // other panels show. If an entry fails to load (offline with no cache) the app still runs,

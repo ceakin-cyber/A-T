@@ -146,7 +146,7 @@ bool DrawLunarAlignmentPanel(const core::LunarPhase& phase, double julianDateAsO
             LabelValueRow("AGE",
                           app::FormatCountdown(std::chrono::duration<double>(phase.ageDays * 86400.0)));
             NextEventLabelValueRow(julianDateAsOf, nextNewMoonJd, nextFullMoonJd);
-            LabelValueRow("REFRESHED", app::FormatUtcTime(refreshedAt));
+            LabelValueRow("REFRESHED", app::FormatTime(refreshedAt));
 
             ImGui::EndTable();
         }

@@ -181,7 +181,7 @@ std::string WhereToLook(const core::LookAngles& look) {
 }
 
 std::string At(double julianDate, net::Clock::time_point now) {
-    return app::FormatUtcClock(core::TimePointFromJulianDate(julianDate), now);
+    return app::FormatClock(core::TimePointFromJulianDate(julianDate), now);
 }
 
 std::string In(double julianDate, net::Clock::time_point now) {

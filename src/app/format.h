@@ -19,13 +19,16 @@ std::string FormatElevation(double radians);
 std::string FormatAltitudeKm(double kilometers);
 std::string FormatSpeedKmPerSec(double kilometersPerSecond);
 
-// A UTC time as "09-21 14:32:10" (month-day hour:minute:second).
-std::string FormatUtcTime(std::chrono::system_clock::time_point time);
+// A time as "09-21 14:32:10" (month-day hour:minute:second), in the display time zone (see
+// app::SetDisplayTimeZone; UTC unless changed). No zone is written after it: where that matters,
+// the caller labels it (see app::DisplayTimeZoneAbbreviation).
+std::string FormatTime(std::chrono::system_clock::time_point time);
 
-// A UTC time short enough to read in a sentence: "14:32 UTC" when it falls on the same UTC day
-// as `now`, else "09-22 14:32 UTC", with the date to make clear it is not today.
-std::string FormatUtcClock(std::chrono::system_clock::time_point time,
-                           std::chrono::system_clock::time_point now);
+// A time short enough to read in a sentence, in the display time zone and labeled with it:
+// "14:32 UTC" when it falls on the same day as `now` (in that zone), else "09-22 14:32 UTC", with
+// the date to make clear it is not today.
+std::string FormatClock(std::chrono::system_clock::time_point time,
+                        std::chrono::system_clock::time_point now);
 
 // Time remaining or a pass length: "45S", "12M 05S", "1H 23M" or "1D 3H". Negative shows as "0S".
 std::string FormatCountdown(std::chrono::duration<double> duration);

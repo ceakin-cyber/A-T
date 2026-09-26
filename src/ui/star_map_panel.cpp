@@ -1,6 +1,7 @@
 #include "ui/star_map_panel.h"
 
 #include "app/format.h"
+#include "app/time_zone.h"
 
 #include <imgui.h>
 #include <numbers>
@@ -62,7 +63,9 @@ void DrawTimeControls(app::StarMapTime& time, std::chrono::system_clock::time_po
     ImGui::SliderScalar("SPEED", ImGuiDataType_Double, &time.speed, &kMinSpeed, &kMaxSpeed,
                         "%.0fx");
 
-    ImGui::Text("SKY TIME: %s", app::FormatUtcTime(app::Effective(time, now)).c_str());
+    const auto skyTime = app::Effective(time, now);
+    ImGui::Text("SKY TIME: %s %s", app::FormatTime(skyTime).c_str(),
+                app::DisplayTimeZoneAbbreviation(skyTime).c_str());
 }
 
 } // namespace

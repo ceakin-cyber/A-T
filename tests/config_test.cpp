@@ -32,6 +32,15 @@ TEST(ParseConfig, ReadsTheObserverLocation) {
     EXPECT_DOUBLE_EQ(config.observer.altitudeKm, 0.058);
 }
 
+TEST(ParseConfig, TimeZoneDefaultsToUtc) {
+    EXPECT_EQ(app::ParseConfig("").timeZone, "UTC");
+}
+
+TEST(ParseConfig, ReadsTheTimeZone) {
+    EXPECT_EQ(app::ParseConfig("time_zone = America/New_York\n").timeZone, "America/New_York");
+    EXPECT_EQ(app::ParseConfig("time_zone=LOCAL\n").timeZone, "LOCAL");
+}
+
 TEST(ParseConfig, OnlyGivenFieldsChangeFromTheDefault) {
     const app::Config config = app::ParseConfig("observer_alt_km = 2.5\n");
     EXPECT_DOUBLE_EQ(config.observer.latitude, app::kObserver.latitude);
