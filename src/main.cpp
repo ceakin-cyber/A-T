@@ -1,6 +1,7 @@
 #include "app/config.h"
 #include "app/event_log.h"
 #include "app/operating_rules.h"
+#include "app/received_transmissions.h"
 #include "app/relay_queue.h"
 #include "app/satellite_roster.h"
 #include "app/star_map_time.h"
@@ -224,6 +225,11 @@ int main(int /*argc*/, char** argv) {
     app::RelayQueue relayQueue(app::LoadRelayMessages(exeDir / "assets" / "relay_messages.txt"),
                                startupTime);
 
+    // Messages received on a schedule, for the INCOMING TRANSMISSION feed: the other half of the
+    // relay queue's messages home. Edit assets/received_messages.txt and restart to change them.
+    app::ReceivedTransmissions receivedTransmissions(
+        app::LoadReceivedMessages(exeDir / "assets" / "received_messages.txt"), startupTime);
+
     // Built once and reused every frame, rather than re-indexing the whole catalog each time.
     const core::StarHipIndex starHipIndex(starCatalog);
 
@@ -248,6 +254,9 @@ int main(int /*argc*/, char** argv) {
         }
 
         relayQueue.Update(now);
+        if (const std::optional<std::string> message = receivedTransmissions.Due(now)) {
+            transmissionLog.Add(now, *message);
+        }
 
         // A fallback heartbeat once the feed above has gone quiet for a while (see IsIdle's own
         // comment on why this does not repeat every frame once logged).

@@ -1,0 +1,25 @@
+# Messages this station receives, shown in the INCOMING TRANSMISSION feed alongside the station's
+# own events: one arrives every two minutes (the first a little over a minute after startup,
+# between the RELAY QUEUE's own sends -- see relay_messages.txt), in the order they appear here,
+# starting over from the top once the last has arrived. One message per line; blank lines and
+# lines starting with '#' are ignored, so this header does not itself show up as a message.
+#
+# Like operating_rules.txt, this file is copied next to the built executable (see assets/ in the
+# top-level CMakeLists.txt), not compiled into it, so messages can be added, removed or reworded
+# here and take effect the next time the app starts -- no rebuild needed. Keep to plain ASCII: the
+# terminal font has no other characters.
+
+FROM HOMEWORLD: REPORT RECEIVED. CONTINUE OBSERVATION
+FROM RELAY 7: SIGNAL STRENGTH NOMINAL
+FROM HOMEWORLD: MAINTAIN COVER. AVOID CONTACT
+FROM DEEP FIELD ARRAY: UNIDENTIFIED CARRIER DETECTED. MONITORING
+FROM HOMEWORLD: SURVEY PRIORITY REMAINS ORBITAL TRAFFIC
+FROM RELAY 7: PACKET LOSS 2 PERCENT. RETRANSMITTING
+FROM HOMEWORLD: LUNAR DATA ACKNOWLEDGED
+FROM UNKNOWN ORIGIN: CARRIER FRAGMENT. SOURCE UNRESOLVED
+FROM HOMEWORLD: TRANSFER WINDOW NOT YET OPEN
+FROM RELAY 7: CLOCK DRIFT CORRECTED
+FROM DEEP FIELD ARRAY: GEOMAGNETIC INTERFERENCE EXPECTED
+FROM HOMEWORLD: STATION IDENTITY VERIFIED
+FROM HOMEWORLD: HOLD POSITION. FURTHER INSTRUCTION TO FOLLOW
+FROM HOMEWORLD: ACKNOWLEDGED. STAND BY
